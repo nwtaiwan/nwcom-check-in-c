@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>打卡紀錄管理儀表板 (帳號版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
+        .table-container { max-height: 60vh; overflow-y: auto; }
+        thead th { position: sticky; top: 0; background-color: #f3f4f6; }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div id="login-modal" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-sm">
+            <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">管理後台登入</h2>
+            <input type="password" id="password" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg" placeholder="預設密碼: admin123">
+            <button id="login-btn" class="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg">登入</button>
+            <p id="login-error" class="text-red-500 text-sm text-center hidden mt-2">密碼錯誤！</p>
+        </div>
+    </div>
+
+    <div id="dashboard" class="min-h-screen p-4 md:p-8 hidden">
+        <div class="max-w-7xl mx-auto bg-white rounded-2xl shadow-lg">
+            <header class="p-6">
+                <h1 class="text-3xl font-bold text-gray-900">打卡紀錄管理儀表板</h1>
+            </header>
+
+            <div class="p-6 bg-gray-50">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <input type="date" id="start-date" class="block w-full border-gray-300 rounded-md">
+                    <input type="date" id="end-date" class="block w-full border-gray-300 rounded-md">
+                    <input type="text" id="email-filter" placeholder="輸入員工 Email 以篩選" class="block w-full border-gray-300 rounded-md">
+                    <div class="grid grid-cols-2 gap-2">
+                         <button id="query-btn" class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md">查詢</button>
+                         <button id="export-btn" class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-md">匯出</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6">
+                <div id="loading-spinner" class="text-center py-10 hidden">讀取中...</div>
+                <div id="results-container" class="">
+                    <p id="no-results" class="text-center text-gray-500 py-10">請設定查詢條件後點擊「查詢」。</p>
+                    <div class="table-container border rounded-lg hidden">
+                        <table id="results-table" class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium">員工Email</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium">打卡類型</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium">打卡時間</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium">打卡地點</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+                 <p id="results-count" class="text-sm text-gray-500 mt-4 text-right"></p>
+            </div>
+        </div>
+    </div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // ▼▼▼ 在此貼上您從 Firebase 專案複製的 firebaseConfig ▼▼▼
+    const firebaseConfig = {
+    apiKey: "AIzaSyDr9Bk0x0MiauuO_mzPOnLhYdhJ08pdxLo",
+    authDomain: "nwcom-check-in.firebaseapp.com",
+    projectId: "nwcom-check-in",
+    storageBucket: "nwcom-check-in.firebasestorage.app",
+    messagingSenderId: "598559960060",
+    appId: "1:598559960060:web:197586299700c85a256079",
+    measurementId: "G-2WY1HVMD2S"
+  };
+    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    let currentRecords = [];
+
+    // --- 登入邏輯 ---
+    const loginModal = document.getElementById('login-modal');
+    const dashboard = document.getElementById('dashboard');
+    const passwordInput = document.getElementById('password');
+    const loginBtn = document.getElementById('login-btn');
+    const loginError = document.getElementById('login-error');
+    const ADMIN_PASSWORD = "admin123";
+
+    loginBtn.addEventListener('click', () => {
+        if (passwordInput.value === ADMIN_PASSWORD) {
+            loginModal.classList.add('hidden');
+            dashboard.classList.remove('hidden');
+        } else {
+            loginError.classList.remove('hidden');
+        }
+    });
+
+    // --- 儀表板邏輯 ---
+    const queryBtn = document.getElementById('query-btn');
+    const exportBtn = document.getElementById('export-btn');
+    const tableBody = document.querySelector('#results-table tbody');
+    const resultsCount = document.getElementById('results-count');
+    const noResults = document.getElementById('no-results');
+    const tableContainer = document.querySelector('.table-container');
+
+    queryBtn.addEventListener('click', async () => {
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+        const email = document.getElementById('email-filter').value.trim();
+
+        if (!startDate || !endDate) { alert('請選擇日期！'); return; }
+
+        const startTimestamp = new Date(startDate);
+        startTimestamp.setHours(0, 0, 0, 0);
+        const endTimestamp = new Date(endDate);
+        endTimestamp.setHours(23, 59, 59, 999);
+
+        let q_constraints = [
+            where("timestamp", ">=", startTimestamp),
+            where("timestamp", "<=", endTimestamp),
+            orderBy("timestamp", "desc")
+        ];
+
+        // 修改：從篩選 employeeId 改為 userEmail
+        if (email) {
+            q_constraints.unshift(where("userEmail", "==", email));
+        }
+
+        const q = query(collection(db, "clock_records"), ...q_constraints);
+        const querySnapshot = await getDocs(q);
+        currentRecords = [];
+        querySnapshot.forEach((doc) => currentRecords.push({ id: doc.id, ...doc.data() }));
+        renderTable(currentRecords);
+    });
+
+    function renderTable(records) {
+        tableBody.innerHTML = '';
+        if (records.length === 0) {
+            noResults.classList.remove('hidden');
+            tableContainer.classList.add('hidden');
+            resultsCount.textContent = '';
+            return;
+        }
+        
+        noResults.classList.add('hidden');
+        tableContainer.classList.remove('hidden');
+        
+        records.forEach(record => {
+            const tr = document.createElement('tr');
+            const formattedTime = record.timestamp.toDate().toLocaleString('zh-TW', { hour12: false });
+            const typeText = record.type === 'in' ? '上班' : '下班';
+            const typeClass = record.type === 'in' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+
+            // 修改：顯示 userEmail
+            tr.innerHTML = `
+                <td class="px-6 py-4">${record.userEmail}</td>
+                <td class="px-6 py-4"><span class="px-2 inline-flex text-xs rounded-full ${typeClass}">${typeText}</span></td>
+                <td class="px-6 py-4">${formattedTime}</td>
+                <td class="px-6 py-4"><a href="${record.mapLink}" target="_blank" class="text-blue-600">查看地圖</a></td>`;
+            tableBody.appendChild(tr);
+        });
+        resultsCount.textContent = `共找到 ${records.length} 筆紀錄。`;
+    }
+
+    exportBtn.addEventListener('click', () => {
+        if (currentRecords.length === 0) { alert('沒有可匯出的資料。'); return; }
+        const headers = ["員工Email", "打卡類型", "打卡時間", "緯度", "經度"];
+        const csvRows = [headers.join(',')];
+        currentRecords.forEach(r => {
+            const row = [r.userEmail, r.type, `"${r.timestamp.toDate().toLocaleString('zh-TW')}"`, r.coords.latitude, r.coords.longitude];
+            csvRows.push(row.join(','));
+        });
+        const blob = new Blob([`\uFEFF${csvRows.join('\n')}`], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `打卡紀錄.csv`;
+        link.click();
+    });
+</script>
+</body>
+</html>
