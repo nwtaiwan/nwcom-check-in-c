@@ -9,7 +9,8 @@
     <style>
         body { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
         .table-container { max-height: 60vh; overflow-y: auto; }
-        thead th { position: sticky; top: 0; background-color: #f3f4f6; }
+        thead th { position: sticky; top: 0; z-index: 10; }
+        .tab-button.active { border-color: #4f46e5; color: #4f46e5; background-color: #eef2ff;}
     </style>
 </head>
 <body class="bg-gray-100">
@@ -17,9 +18,12 @@
     <div id="login-modal" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
         <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-sm">
             <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">管理後台登入</h2>
-            <input type="password" id="password" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg" placeholder="預設密碼: admin123">
-            <button id="login-btn" class="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg">登入</button>
-            <p id="login-error" class="text-red-500 text-sm text-center hidden mt-2">密碼錯誤！</p>
+            <div class="space-y-4">
+                <input type="email" id="admin-email" class="block w-full px-4 py-3 border border-gray-300 rounded-lg" placeholder="管理者 Email">
+                <input type="password" id="admin-password" class="block w-full px-4 py-3 border border-gray-300 rounded-lg" placeholder="管理者密碼">
+            </div>
+            <button id="login-btn" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg">登入</button>
+            <p id="login-error" class="text-red-500 text-sm text-center min-h-[20px] mt-2"></p>
         </div>
     </div>
 
@@ -27,142 +31,318 @@
         <div class="max-w-7xl mx-auto bg-white rounded-2xl shadow-lg">
             <header class="p-6">
                 <h1 class="text-3xl font-bold text-gray-900">打卡紀錄管理儀表板</h1>
+                <p id="dashboard-subtitle" class="text-gray-500 mt-1">查詢、篩選並匯出所有外勤人員的打卡紀錄。</p>
             </header>
+            
+            <!-- Tabs -->
+            <div class="border-b border-gray-200 px-6">
+                <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                    <button id="records-tab-button" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">打卡紀錄查詢</button>
+                    <button id="user-management-tab-button" class="tab-button hidden whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">使用者管理</button>
+                </nav>
+            </div>
 
-            <div class="p-6 bg-gray-50">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                    <input type="date" id="start-date" class="block w-full border-gray-300 rounded-md">
-                    <input type="date" id="end-date" class="block w-full border-gray-300 rounded-md">
-                    <input type="text" id="email-filter" placeholder="輸入員工 Email 以篩選" class="block w-full border-gray-300 rounded-md">
-                    <div class="grid grid-cols-2 gap-2">
-                         <button id="query-btn" class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md">查詢</button>
-                         <button id="export-btn" class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-md">匯出</button>
+            <!-- 打卡紀錄查詢 View -->
+            <div id="records-view">
+                <div class="p-6 bg-gray-50">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                        <div>
+                            <label for="start-date" class="block text-sm font-medium text-gray-700">開始日期</label>
+                            <input type="date" id="start-date" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label for="end-date" class="block text-sm font-medium text-gray-700">結束日期</label>
+                            <input type="date" id="end-date" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label for="email-filter" class="block text-sm font-medium text-gray-700">員工 Email (可選填)</label>
+                            <input type="text" id="email-filter" placeholder="輸入完整 Email 以篩選" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                             <button id="query-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md shadow-sm">查詢</button>
+                             <button id="export-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-sm">匯出</button>
+                        </div>
                     </div>
+                </div>
+
+                <div class="p-6">
+                    <div id="results-container">
+                        <div id="loading-spinner" class="text-center py-10 hidden">
+                            <p class="text-indigo-600 font-semibold">讀取中...</p>
+                        </div>
+                        <p id="no-results" class="text-center text-gray-500 py-10">請設定查詢條件後點擊「查詢」。</p>
+                        <div class="table-container border rounded-lg hidden">
+                            <table id="results-table" class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-100">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">員工Email</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">打卡類型</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">打卡時間</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">打卡地點</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                     <p id="results-count" class="text-sm text-gray-500 mt-4 text-right"></p>
                 </div>
             </div>
 
-            <div class="p-6">
-                <div id="loading-spinner" class="text-center py-10 hidden">讀取中...</div>
-                <div id="results-container" class="">
-                    <p id="no-results" class="text-center text-gray-500 py-10">請設定查詢條件後點擊「查詢」。</p>
-                    <div class="table-container border rounded-lg hidden">
-                        <table id="results-table" class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-100">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium">員工Email</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium">打卡類型</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium">打卡時間</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium">打卡地點</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200"></tbody>
-                        </table>
-                    </div>
+            <!-- 使用者管理 View -->
+            <div id="user-management-view" class="hidden p-6">
+                 <div class="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-4 mb-6">
+                    <h4 class="font-bold">重要提示：如何新增員工帳號</h4>
+                    <p class="text-sm">為確保系統安全，新增員工帳號需在 Firebase 後台手動操作。新增後，該員工會自動出現在下方列表中，您即可為其指派角色。</p>
                 </div>
-                 <p id="results-count" class="text-sm text-gray-500 mt-4 text-right"></p>
+                <div class="flex justify-end mb-4">
+                    <button id="save-roles-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-sm">儲存角色變更</button>
+                </div>
+                <div id="user-list-container" class="table-container border rounded-lg min-h-[100px]">
+                    <!-- User list table or status message will be rendered here by JavaScript -->
+                </div>
             </div>
         </div>
     </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, collection, getDocs, query, where, orderBy, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     // ▼▼▼ 在此貼上您從 Firebase 專案複製的 firebaseConfig ▼▼▼
     const firebaseConfig = {
-    apiKey: "AIzaSyDr9Bk0x0MiauuO_mzPOnLhYdhJ08pdxLo",
-    authDomain: "nwcom-check-in.firebaseapp.com",
-    projectId: "nwcom-check-in",
-    storageBucket: "nwcom-check-in.firebasestorage.app",
-    messagingSenderId: "598559960060",
-    appId: "1:598559960060:web:197586299700c85a256079",
-    measurementId: "G-2WY1HVMD2S"
-  };
+        apiKey: "AIzaSyDr9Bk0x0MiauuO_mzPOnLhYdhJ08pdxLo",
+        authDomain: "nwcom-check-in.firebaseapp.com",
+        projectId: "nwcom-check-in",
+        storageBucket: "nwcom-check-in.appspot.com",
+        messagingSenderId: "598559960060",
+        appId: "1:598559960060:web:197586299700c85a256079",
+        measurementId: "G-2WY1HVMD2S"
+    };
     // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    let currentRecords = [];
-
-    // --- 登入邏輯 ---
+    
+    // --- DOM Elements ---
     const loginModal = document.getElementById('login-modal');
     const dashboard = document.getElementById('dashboard');
-    const passwordInput = document.getElementById('password');
+    const adminEmailInput = document.getElementById('admin-email');
+    const adminPasswordInput = document.getElementById('admin-password');
     const loginBtn = document.getElementById('login-btn');
     const loginError = document.getElementById('login-error');
-    const ADMIN_PASSWORD = "admin123";
+    
+    const recordsView = document.getElementById('records-view');
+    const userManagementView = document.getElementById('user-management-view');
+    const recordsTabBtn = document.getElementById('records-tab-button');
+    const userManagementTabBtn = document.getElementById('user-management-tab-button');
 
-    loginBtn.addEventListener('click', () => {
-        if (passwordInput.value === ADMIN_PASSWORD) {
-            loginModal.classList.add('hidden');
-            dashboard.classList.remove('hidden');
-        } else {
-            loginError.classList.remove('hidden');
-        }
-    });
-
-    // --- 儀表板邏輯 ---
     const queryBtn = document.getElementById('query-btn');
     const exportBtn = document.getElementById('export-btn');
     const tableBody = document.querySelector('#results-table tbody');
     const resultsCount = document.getElementById('results-count');
     const noResults = document.getElementById('no-results');
     const tableContainer = document.querySelector('.table-container');
+    const loadingSpinner = document.getElementById('loading-spinner');
 
+    const saveRolesBtn = document.getElementById('save-roles-btn');
+    const userListContainer = document.getElementById('user-list-container');
+
+    let db, auth;
+    let currentRecords = [];
+    let currentUserRole = null;
+    const ROLES = ['system_admin', 'hr', 'senior_manager', 'junior_manager', 'employee'];
+
+    // --- App Initialization ---
+    function checkFirebaseConfig() {
+        if (!firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("YOUR_")) {
+            loginError.textContent = "錯誤：尚未設定 Firebase。";
+            loginBtn.disabled = true; adminEmailInput.disabled = true; adminPasswordInput.disabled = true;
+            return false;
+        }
+        return true;
+    }
+
+    if (checkFirebaseConfig()) {
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+    }
+
+    // --- Login Logic ---
+    loginBtn.addEventListener('click', async () => {
+        loginError.textContent = '';
+        const email = adminEmailInput.value;
+        const password = adminPasswordInput.value;
+        if (!email || !password) { loginError.textContent = '請輸入 Email 和密碼。'; return; }
+
+        try {
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+            const userDocRef = doc(db, "users", user.uid);
+            const userDoc = await getDoc(userDocRef);
+
+            const allowedRoles = ['system_admin', 'hr', 'senior_manager', 'junior_manager'];
+            if (userDoc.exists() && allowedRoles.includes(userDoc.data().role)) {
+                currentUserRole = userDoc.data().role;
+                loginModal.classList.add('hidden');
+                dashboard.classList.remove('hidden');
+
+                if (currentUserRole === 'system_admin') {
+                    userManagementTabBtn.classList.remove('hidden');
+                    loadAndRenderUsers();
+                }
+            } else {
+                await signOut(auth);
+                loginError.textContent = '您沒有權限存取此後台。';
+            }
+        } catch (error) {
+            console.error("Admin login failed:", error.code);
+            loginError.textContent = 'Email 或密碼錯誤，或登入時發生錯誤。';
+        }
+    });
+    
+    // --- Tab Management ---
+    function setupTabs() {
+        recordsTabBtn.addEventListener('click', () => {
+            recordsView.classList.remove('hidden');
+            userManagementView.classList.add('hidden');
+            recordsTabBtn.classList.add('active');
+            userManagementTabBtn.classList.remove('active');
+        });
+        userManagementTabBtn.addEventListener('click', () => {
+            recordsView.classList.add('hidden');
+            userManagementView.classList.remove('hidden');
+            recordsTabBtn.classList.remove('active');
+            userManagementTabBtn.classList.add('active');
+        });
+    }
+    setupTabs();
+
+    // --- User Management Logic (For System Admin) ---
+    async function loadAndRenderUsers() {
+        if (currentUserRole !== 'system_admin') return;
+        userListContainer.innerHTML = `<p class="text-center text-gray-500 py-10">讀取使用者列表中...</p>`;
+
+        try {
+            const querySnapshot = await getDocs(collection(db, "users"));
+            const users = [];
+            querySnapshot.forEach(doc => users.push({ uid: doc.id, ...doc.data() }));
+
+            if (users.length === 0) {
+                userListContainer.innerHTML = `<p class="text-center text-gray-500 py-10">名冊中沒有任何使用者。</p>`;
+                return;
+            }
+            
+            const tableHTML = `
+                <table class="min-w-full divide-y divide-gray-200">
+                     <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">員工Email</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">角色</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">使用者 UID</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+                </table>`;
+            userListContainer.innerHTML = tableHTML;
+            const userTableBody = document.getElementById('user-table-body');
+
+            users.forEach(user => {
+                const tr = document.createElement('tr');
+                const roleOptions = ROLES.map(role => `<option value="${role}" ${user.role === role ? 'selected' : ''}>${role}</option>`).join('');
+                
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${user.email}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <select data-uid="${user.uid}" class="role-select mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                            ${roleOptions}
+                        </select>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.uid}</td>
+                `;
+                userTableBody.appendChild(tr);
+            });
+
+        } catch (error) {
+            console.error("Error loading users:", error);
+            userListContainer.innerHTML = `<p class="text-center text-red-500 py-10">讀取使用者列表失敗。</p>`;
+        }
+    }
+
+    saveRolesBtn.addEventListener('click', async () => {
+        const selects = userListContainer.querySelectorAll('.role-select');
+        const updatePromises = [];
+        
+        selects.forEach(select => {
+            const uid = select.dataset.uid;
+            const newRole = select.value;
+            const userDocRef = doc(db, "users", uid);
+            updatePromises.push(updateDoc(userDocRef, { role: newRole }));
+        });
+
+        try {
+            await Promise.all(updatePromises);
+            alert('角色更新成功！');
+            loadAndRenderUsers(); // Refresh list
+        } catch (error) {
+            console.error("Error updating roles: ", error);
+            alert('角色更新失敗，請檢查控制台錯誤。');
+        }
+    });
+
+    // --- Records Query Logic ---
     queryBtn.addEventListener('click', async () => {
         const startDate = document.getElementById('start-date').value;
         const endDate = document.getElementById('end-date').value;
         const email = document.getElementById('email-filter').value.trim();
 
-        if (!startDate || !endDate) { alert('請選擇日期！'); return; }
+        if (!startDate || !endDate) { alert('請務必選擇開始與結束日期！'); return; }
 
-        const startTimestamp = new Date(startDate);
-        startTimestamp.setHours(0, 0, 0, 0);
-        const endTimestamp = new Date(endDate);
-        endTimestamp.setHours(23, 59, 59, 999);
+        tableContainer.classList.add('hidden'); noResults.classList.add('hidden');
+        loadingSpinner.classList.remove('hidden'); resultsCount.textContent = ''; currentRecords = [];
 
-        let q_constraints = [
-            where("timestamp", ">=", startTimestamp),
-            where("timestamp", "<=", endTimestamp),
-            orderBy("timestamp", "desc")
-        ];
+        try {
+            const startTimestamp = new Date(startDate); startTimestamp.setHours(0, 0, 0, 0);
+            const endTimestamp = new Date(endDate); endTimestamp.setHours(23, 59, 59, 999);
 
-        // 修改：從篩選 employeeId 改為 userEmail
-        if (email) {
-            q_constraints.unshift(where("userEmail", "==", email));
+            let q_constraints = [where("timestamp", ">=", startTimestamp), where("timestamp", "<=", endTimestamp), orderBy("timestamp", "desc")];
+            if (email) { q_constraints.unshift(where("userEmail", "==", email)); }
+
+            const q = query(collection(db, "clock_records"), ...q_constraints);
+            const querySnapshot = await getDocs(q);
+            
+            querySnapshot.forEach((doc) => currentRecords.push({ id: doc.id, ...doc.data() }));
+            renderTable(currentRecords);
+        } catch (error) {
+            console.error("查詢失敗:", error);
+            noResults.innerHTML = '<span class="font-bold text-red-600">查詢時發生錯誤！</span><br>請檢查瀏覽器控制台以獲取詳細資訊。';
+            if (error.code === 'failed-precondition') {
+                noResults.innerHTML += '<br><span class="text-sm text-gray-700 mt-2 block">這通常是因為資料庫缺少必要的「複合索引」。<br>請根據瀏覽器控制台(F12)中的錯誤提示連結，在 Firebase 後台建立索引。</span>';
+            } else if (error.code === 'permission-denied' || error.code ==='PERMISSION_DENIED') {
+                 noResults.innerHTML = '<span class="font-bold text-red-600">權限不足！</span><br><span class="text-sm text-gray-700 mt-2 block">您的帳號沒有讀取這些資料的權限，請確認 Firestore 安全規則是否已更新，且您的角色有權限查看。</span>';
+            }
+            noResults.classList.remove('hidden');
+        } finally {
+            loadingSpinner.classList.add('hidden');
         }
-
-        const q = query(collection(db, "clock_records"), ...q_constraints);
-        const querySnapshot = await getDocs(q);
-        currentRecords = [];
-        querySnapshot.forEach((doc) => currentRecords.push({ id: doc.id, ...doc.data() }));
-        renderTable(currentRecords);
     });
 
     function renderTable(records) {
         tableBody.innerHTML = '';
         if (records.length === 0) {
-            noResults.classList.remove('hidden');
-            tableContainer.classList.add('hidden');
-            resultsCount.textContent = '';
-            return;
+            noResults.textContent = '在此條件下查無任何打卡紀錄。';
+            noResults.classList.remove('hidden'); tableContainer.classList.add('hidden');
+            resultsCount.textContent = ''; return;
         }
         
-        noResults.classList.add('hidden');
-        tableContainer.classList.remove('hidden');
+        noResults.classList.add('hidden'); tableContainer.classList.remove('hidden');
         
         records.forEach(record => {
             const tr = document.createElement('tr');
-            const formattedTime = record.timestamp.toDate().toLocaleString('zh-TW', { hour12: false });
+            tr.className = "hover:bg-gray-50";
+            const formattedTime = record.timestamp.toDate().toLocaleString('zh-TW', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
             const typeText = record.type === 'in' ? '上班' : '下班';
             const typeClass = record.type === 'in' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-
-            // 修改：顯示 userEmail
-            tr.innerHTML = `
-                <td class="px-6 py-4">${record.userEmail}</td>
-                <td class="px-6 py-4"><span class="px-2 inline-flex text-xs rounded-full ${typeClass}">${typeText}</span></td>
-                <td class="px-6 py-4">${formattedTime}</td>
-                <td class="px-6 py-4"><a href="${record.mapLink}" target="_blank" class="text-blue-600">查看地圖</a></td>`;
+            tr.innerHTML = `<td class="px-6 py-4 whitespace-nowrap">${record.userEmail}</td><td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${typeClass}">${typeText}</span></td><td class="px-6 py-4 whitespace-nowrap">${formattedTime}</td><td class="px-6 py-4 whitespace-nowrap"><a href="${record.mapLink}" target="_blank" class="text-indigo-600 hover:text-indigo-900 font-medium">查看地圖</a></td>`;
             tableBody.appendChild(tr);
         });
         resultsCount.textContent = `共找到 ${records.length} 筆紀錄。`;
@@ -173,13 +353,14 @@
         const headers = ["員工Email", "打卡類型", "打卡時間", "緯度", "經度"];
         const csvRows = [headers.join(',')];
         currentRecords.forEach(r => {
-            const row = [r.userEmail, r.type, `"${r.timestamp.toDate().toLocaleString('zh-TW')}"`, r.coords.latitude, r.coords.longitude];
+            const row = [r.userEmail, (r.type === 'in' ? '上班' : '下班'), `"${r.timestamp.toDate().toLocaleString('zh-TW', { hour12: false })}"`, r.coords.latitude, r.coords.longitude];
             csvRows.push(row.join(','));
         });
         const blob = new Blob([`\uFEFF${csvRows.join('\n')}`], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
+        const today = new Date().toISOString().slice(0, 10);
         link.href = URL.createObjectURL(blob);
-        link.download = `打卡紀錄.csv`;
+        link.download = `打卡紀錄_${today}.csv`;
         link.click();
     });
 </script>
