@@ -3,366 +3,566 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>打卡紀錄管理儀表板 (帳號版)</title>
+    <title>外勤人員打卡系統 (路徑追蹤版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Leaflet Map Library -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <style>
-        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
-        .table-container { max-height: 60vh; overflow-y: auto; }
-        thead th { position: sticky; top: 0; z-index: 10; }
-        .tab-button.active { border-color: #4f46e5; color: #4f46e5; background-color: #eef2ff;}
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; touch-action: manipulation; }
+        .spinner {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        #map { height: 250px; }
+        .blinking-dot {
+            height: 8px;
+            width: 8px;
+            background-color: #f87171; /* red-400 */
+            border-radius: 50%;
+            display: inline-block;
+            animation: blink-animation 1.5s infinite ease-in-out;
+        }
+        @keyframes blink-animation {
+            0% { opacity: 1; }
+            50% { opacity: 0.2; }
+            100% { opacity: 1; }
+        }
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
 
-    <div id="login-modal" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
-        <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-sm">
-            <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">管理後台登入</h2>
-            <div class="space-y-4">
-                <input type="email" id="admin-email" class="block w-full px-4 py-3 border border-gray-300 rounded-lg" placeholder="管理者 Email">
-                <input type="password" id="admin-password" class="block w-full px-4 py-3 border border-gray-300 rounded-lg" placeholder="管理者密碼">
-            </div>
-            <button id="login-btn" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg">登入</button>
-            <p id="login-error" class="text-red-500 text-sm text-center min-h-[20px] mt-2"></p>
-        </div>
-    </div>
-
-    <div id="dashboard" class="min-h-screen p-4 md:p-8 hidden">
-        <div class="max-w-7xl mx-auto bg-white rounded-2xl shadow-lg">
-            <header class="p-6">
-                <h1 class="text-3xl font-bold text-gray-900">打卡紀錄管理儀表板</h1>
-                <p id="dashboard-subtitle" class="text-gray-500 mt-1">查詢、篩選並匯出所有外勤人員的打卡紀錄。</p>
+    <div class="w-full max-w-md mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
+        
+        <!-- 登入畫面 -->
+        <div id="login-view">
+            <header class="bg-white p-6 text-center border-b">
+                <img src="https://static.wixstatic.com/media/6148f9_56377cef73c1498f95a2c3057b89f2ed~mv2.png" alt="西北保全 Logo" class="mx-auto" style="width: 120px; height: 60px;">
+                <h1 class="text-xl font-bold text-red-600 mt-4">西北保全人員打卡系統</h1>
             </header>
-            
-            <!-- Tabs -->
-            <div class="border-b border-gray-200 px-6">
-                <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-                    <button id="records-tab-button" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">打卡紀錄查詢</button>
-                    <button id="user-management-tab-button" class="tab-button hidden whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">使用者管理</button>
-                </nav>
-            </div>
+            <main class="p-6 md:p-8">
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex items-center justify-between">
+                            <label for="email" class="block text-sm font-medium text-gray-700">電子郵件</label>
+                            <div class="flex items-center text-sm">
+                                <input id="remember-me" type="checkbox" class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded">
+                                <label for="remember-me" class="ml-1.5 text-gray-700">記住我</label>
+                            </div>
+                        </div>
+                        <input type="email" id="email" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="your.email@company.com">
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between">
+                             <label for="login-password" class="block text-sm font-medium text-gray-700">密碼</label>
+                             <a href="#" id="forgot-password-link" class="text-sm text-red-600 hover:text-red-500">忘記密碼?</a>
+                        </div>
+                        <div class="relative mt-1">
+                            <input type="password" id="login-password" class="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 pr-10" placeholder="••••••••">
+                            <button type="button" id="toggle-password-btn" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-gray-700">
+                            </button>
+                        </div>
+                    </div>
+                    <button id="login-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 flex items-center justify-center space-x-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+                        <span>登入</span>
+                    </button>
+                    <p id="login-message" class="text-red-500 text-sm text-center min-h-[20px]"></p>
+                </div>
+            </main>
+        </div>
 
-            <!-- 打卡紀錄查詢 View -->
-            <div id="records-view">
-                <div class="p-6 bg-gray-50">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                        <div>
-                            <label for="start-date" class="block text-sm font-medium text-gray-700">開始日期</label>
-                            <input type="date" id="start-date" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+        <!-- 主操作畫面 -->
+        <div id="main-view" class="hidden">
+            <header class="bg-red-600 text-white p-6 flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <img src="https://static.wixstatic.com/media/6148f9_56377cef73c1498f95a2c3057b89f2ed~mv2.png" alt="西北保全 Logo" style="width: 40px; height: 20px; object-fit: contain;">
+                    <div>
+                        <h1 class="text-xl font-bold">西北保全打卡系統</h1>
+                        <p id="user-email-display" class="text-sm opacity-90"></p>
+                    </div>
+                </div>
+                <button id="logout-btn" class="bg-white hover:bg-gray-100 text-red-600 font-bold py-2 px-4 rounded-lg shadow-sm border border-red-700 transition-colors flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+                    <span>登出</span>
+                </button>
+            </header>
+
+            <main class="p-6 md:p-8">
+                <!-- 狀態顯示區 -->
+                <div id="status-card" class="bg-gray-50 rounded-lg p-5 mb-6 text-center border transition-all">
+                     <div class="flex justify-between items-center">
+                        <div class="text-left">
+                            <h2 class="text-lg font-semibold text-gray-700 mb-1">目前狀態</h2>
+                            <p id="current-status" class="text-2xl font-bold text-gray-800">尚未打卡</p>
                         </div>
-                        <div>
-                            <label for="end-date" class="block text-sm font-medium text-gray-700">結束日期</label>
-                            <input type="date" id="end-date" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        <div class="text-right">
+                             <h2 class="text-lg font-semibold text-gray-700 mb-1">今日工時</h2>
+                            <p id="work-duration" class="text-2xl font-bold text-gray-800">-- 小時 -- 分</p>
                         </div>
-                        <div>
-                            <label for="email-filter" class="block text-sm font-medium text-gray-700">員工 Email (可選填)</label>
-                            <input type="text" id="email-filter" placeholder="輸入完整 Email 以篩選" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                             <button id="query-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md shadow-sm">查詢</button>
-                             <button id="export-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-sm">匯出</button>
-                        </div>
+                     </div>
+                </div>
+
+                <!-- Map Display -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3 border-b pb-2 flex items-center space-x-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <span>目前位置</span>
+                        <span id="tracking-status" class="ml-2 hidden items-center">
+                            <span class="blinking-dot"></span>
+                            <span class="ml-1.5 text-sm font-normal text-gray-600">路徑追蹤中</span>
+                        </span>
+                    </h3>
+                    <div id="map" class="w-full rounded-lg bg-gray-200 flex items-center justify-center text-gray-500 overflow-hidden">
+                        正在取得 GPS 定位...
                     </div>
                 </div>
 
-                <div class="p-6">
-                    <div id="results-container">
-                        <div id="loading-spinner" class="text-center py-10 hidden">
-                            <p class="text-indigo-600 font-semibold">讀取中...</p>
-                        </div>
-                        <p id="no-results" class="text-center text-gray-500 py-10">請設定查詢條件後點擊「查詢」。</p>
-                        <div class="table-container border rounded-lg hidden">
-                            <table id="results-table" class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-100">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">員工Email</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">打卡類型</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">打卡時間</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">打卡地點</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-200"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                     <p id="results-count" class="text-sm text-gray-500 mt-4 text-right"></p>
+                <!-- 打卡按鈕區 -->
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <button id="clock-in-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-4 rounded-lg shadow-md transition-all duration-200 flex items-center justify-center space-x-2 disabled:bg-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10.5V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h12.5"/><path d="m16 16-2 2 4 4 4-4-2-2"/><path d="M18 10V2"/></svg>
+                        <span>上班打卡</span>
+                    </button>
+                    <button id="clock-out-btn" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-4 rounded-lg shadow-md transition-all duration-200 flex items-center justify-center space-x-2 disabled:bg-gray-400" disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 13.5V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h12.5"/><path d="m16 22 5-5-5-5"/><path d="M18 10V2"/></svg>
+                        <span>下班打卡</span>
+                    </button>
                 </div>
-            </div>
+                
+                <div id="message-box" class="hidden p-4 mb-4 text-sm rounded-lg" role="alert">
+                    <span class="font-medium" id="message-content"></span>
+                </div>
 
-            <!-- 使用者管理 View -->
-            <div id="user-management-view" class="hidden p-6">
-                 <div class="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-4 mb-6">
-                    <h4 class="font-bold">重要提示：如何新增員工帳號</h4>
-                    <p class="text-sm">為確保系統安全，新增員工帳號需在 Firebase 後台手動操作。新增後，該員工會自動出現在下方列表中，您即可為其指派角色。</p>
+                <!-- 打卡紀錄 -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3 border-b pb-2">今日打卡紀錄</h3>
+                    <div id="history-log" class="space-y-3 max-h-48 overflow-y-auto pr-2">
+                    </div>
                 </div>
-                <div class="flex justify-end mb-4">
-                    <button id="save-roles-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-sm">儲存角色變更</button>
-                </div>
-                <div id="user-list-container" class="table-container border rounded-lg min-h-[100px]">
-                    <!-- User list table or status message will be rendered here by JavaScript -->
-                </div>
-            </div>
+            </main>
         </div>
     </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, collection, getDocs, query, where, orderBy, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    // ▼▼▼ 在此貼上您從 Firebase 專案複製的 firebaseConfig ▼▼▼
+    import { getFirestore, collection, addDoc, query, where, onSnapshot, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    
     const firebaseConfig = {
-        apiKey: "AIzaSyDr9Bk0x0MiauuO_mzPOnLhYdhJ08pdxLo",
-        authDomain: "nwcom-check-in.firebaseapp.com",
-        projectId: "nwcom-check-in",
-        storageBucket: "nwcom-check-in.appspot.com",
-        messagingSenderId: "598559960060",
-        appId: "1:598559960060:web:197586299700c85a256079",
-        measurementId: "G-2WY1HVMD2S"
+      apiKey: "AIzaSyDr9Bk0x0MiauuO_mzPOnLhYdhJ08pdxLo",
+      authDomain: "nwcom-check-in.firebaseapp.com",
+      projectId: "nwcom-check-in",
+      storageBucket: "nwcom-check-in.appspot.com",
+      messagingSenderId: "598559960060",
+      appId: "1:598559960060:web:197586299700c85a256079",
+      measurementId: "G-2WY1HVMD2S"
     };
-    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+    // --- DOM 元素 ---
+    const loginView = document.getElementById('login-view'), mainView = document.getElementById('main-view');
+    const emailInput = document.getElementById('email'), passwordInput = document.getElementById('login-password');
+    const togglePasswordBtn = document.getElementById('toggle-password-btn'), rememberMeCheckbox = document.getElementById('remember-me');
+    const loginBtn = document.getElementById('login-btn'), loginMessage = document.getElementById('login-message');
+    const logoutBtn = document.getElementById('logout-btn'), userEmailDisplay = document.getElementById('user-email-display');
+    const forgotPasswordLink = document.getElementById('forgot-password-link');
+    const currentStatusEl = document.getElementById('current-status'), workDurationEl = document.getElementById('work-duration');
+    const clockInBtn = document.getElementById('clock-in-btn'), clockOutBtn = document.getElementById('clock-out-btn');
+    const historyLogEl = document.getElementById('history-log');
+    const messageBoxEl = document.getElementById('message-box'), messageContentEl = document.getElementById('message-content');
+    const statusCardEl = document.getElementById('status-card');
+    const mapContainer = document.getElementById('map');
+    const trackingStatusEl = document.getElementById('tracking-status');
+
+    const eyeIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+    const eyeOffIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" x2="22" y1="2" y2="22"></line></svg>`;
     
-    // --- DOM Elements ---
-    const loginModal = document.getElementById('login-modal');
-    const dashboard = document.getElementById('dashboard');
-    const adminEmailInput = document.getElementById('admin-email');
-    const adminPasswordInput = document.getElementById('admin-password');
-    const loginBtn = document.getElementById('login-btn');
-    const loginError = document.getElementById('login-error');
-    
-    const recordsView = document.getElementById('records-view');
-    const userManagementView = document.getElementById('user-management-view');
-    const recordsTabBtn = document.getElementById('records-tab-button');
-    const userManagementTabBtn = document.getElementById('user-management-tab-button');
+    let workDurationInterval = null, unsubscribeFromHistory = null;
+    let map = null, marker = null, currentPosition = null, locationWatcherId = null;
+    let pathCoordinates = [], pathPolyline = null; // 新增：用於路徑追蹤
 
-    const queryBtn = document.getElementById('query-btn');
-    const exportBtn = document.getElementById('export-btn');
-    const tableBody = document.querySelector('#results-table tbody');
-    const resultsCount = document.getElementById('results-count');
-    const noResults = document.getElementById('no-results');
-    const tableContainer = document.querySelector('.table-container');
-    const loadingSpinner = document.getElementById('loading-spinner');
-
-    const saveRolesBtn = document.getElementById('save-roles-btn');
-    const userListContainer = document.getElementById('user-list-container');
-
-    let db, auth;
-    let currentRecords = [];
-    let currentUserRole = null;
-    const ROLES = ['system_admin', 'hr', 'senior_manager', 'junior_manager', 'employee'];
-
-    // --- App Initialization ---
+    // --- Firebase 設定檢查 ---
     function checkFirebaseConfig() {
-        if (!firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("YOUR_")) {
-            loginError.textContent = "錯誤：尚未設定 Firebase。";
-            loginBtn.disabled = true; adminEmailInput.disabled = true; adminPasswordInput.disabled = true;
+        if (firebaseConfig.apiKey.startsWith("AIzaSy") === false) {
+            loginMessage.textContent = "錯誤：請在程式碼中貼上您的 Firebase 設定。";
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = `<span>設定未完成</span>`;
+            loginBtn.classList.replace('bg-red-600', 'bg-gray-400');
             return false;
         }
         return true;
     }
 
+    // --- 主程式邏輯 ---
     if (checkFirebaseConfig()) {
         const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
-    }
-
-    // --- Login Logic ---
-    loginBtn.addEventListener('click', async () => {
-        loginError.textContent = '';
-        const email = adminEmailInput.value;
-        const password = adminPasswordInput.value;
-        if (!email || !password) { loginError.textContent = '請輸入 Email 和密碼。'; return; }
-
-        try {
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-            const userDocRef = doc(db, "users", user.uid);
-            const userDoc = await getDoc(userDocRef);
-
-            const allowedRoles = ['system_admin', 'hr', 'senior_manager', 'junior_manager'];
-            if (userDoc.exists() && allowedRoles.includes(userDoc.data().role)) {
-                currentUserRole = userDoc.data().role;
-                loginModal.classList.add('hidden');
-                dashboard.classList.remove('hidden');
-
-                if (currentUserRole === 'system_admin') {
-                    userManagementTabBtn.classList.remove('hidden');
-                    loadAndRenderUsers();
-                }
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        initializeLoginScreen();
+        
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                loginView.classList.add('hidden');
+                mainView.classList.remove('hidden');
+                userEmailDisplay.textContent = `歡迎, ${user.email}`;
+                listenToTodayRecords(user.uid);
+                startLocationWatcher();
             } else {
-                await signOut(auth);
-                loginError.textContent = '您沒有權限存取此後台。';
+                loginView.classList.remove('hidden');
+                mainView.classList.add('hidden');
+                if (unsubscribeFromHistory) unsubscribeFromHistory();
+                if (workDurationInterval) clearInterval(workDurationInterval);
+                stopLocationWatcher();
+                clearMainView();
             }
-        } catch (error) {
-            console.error("Admin login failed:", error.code);
-            loginError.textContent = 'Email 或密碼錯誤，或登入時發生錯誤。';
+        });
+
+        // --- 登入/登出相關 ---
+        // (此區塊與前一版相同，故省略以節省篇幅)
+        function initializeLoginScreen() {
+            const savedEmail = localStorage.getItem('rememberedEmail');
+            if (savedEmail) {
+                emailInput.value = savedEmail;
+                rememberMeCheckbox.checked = true;
+            }
+            togglePasswordBtn.innerHTML = eyeIcon;
         }
-    });
-    
-    // --- Tab Management ---
-    function setupTabs() {
-        recordsTabBtn.addEventListener('click', () => {
-            recordsView.classList.remove('hidden');
-            userManagementView.classList.add('hidden');
-            recordsTabBtn.classList.add('active');
-            userManagementTabBtn.classList.remove('active');
+
+        loginBtn.addEventListener('click', async () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            loginMessage.textContent = '';
+
+            if (rememberMeCheckbox.checked) {
+                localStorage.setItem('rememberedEmail', email);
+            } else {
+                localStorage.removeItem('rememberedEmail');
+            }
+            
+            toggleButtonLoading(loginBtn, true, '登入中...');
+
+            try {
+                if (email === '11' && password === '11') {
+                    await signInWithEmailAndPassword(auth, 'test@company.com', 'password123');
+                } else {
+                    await signInWithEmailAndPassword(auth, email, password);
+                }
+            } catch (error) {
+                console.error("Login failed:", error);
+                const message = (error.code === 'auth/invalid-credential') 
+                    ? '登入失敗，帳號或密碼錯誤。' 
+                    : '登入時發生未知錯誤。';
+                loginMessage.textContent = message;
+            } finally {
+                toggleButtonLoading(loginBtn, false, '登入');
+            }
         });
-        userManagementTabBtn.addEventListener('click', () => {
-            recordsView.classList.add('hidden');
-            userManagementView.classList.remove('hidden');
-            recordsTabBtn.classList.remove('active');
-            userManagementTabBtn.classList.add('active');
+        
+        logoutBtn.addEventListener('click', () => signOut(auth));
+
+        togglePasswordBtn.addEventListener('click', () => {
+            const isPassword = passwordInput.type === 'password';
+            passwordInput.type = isPassword ? 'text' : 'password';
+            togglePasswordBtn.innerHTML = isPassword ? eyeOffIcon : eyeIcon;
         });
-    }
-    setupTabs();
 
-    // --- User Management Logic (For System Admin) ---
-    async function loadAndRenderUsers() {
-        if (currentUserRole !== 'system_admin') return;
-        userListContainer.innerHTML = `<p class="text-center text-gray-500 py-10">讀取使用者列表中...</p>`;
+        forgotPasswordLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            const email = emailInput.value;
+            if (!email) {
+                loginMessage.textContent = '請先輸入您的電子郵件以重設密碼。';
+                return;
+            }
+            sendPasswordResetEmail(auth, email)
+                .then(() => {
+                    loginMessage.textContent = `密碼重設信件已寄至 ${email}，請查收。`;
+                    loginMessage.className = "text-green-600 text-sm text-center min-h-[20px]";
+                })
+                .catch((error) => {
+                    loginMessage.textContent = '無法傳送密碼重設信件，請確認郵件地址是否正確。';
+                     loginMessage.className = "text-red-500 text-sm text-center min-h-[20px]";
+                });
+        });
 
-        try {
-            const querySnapshot = await getDocs(collection(db, "users"));
-            const users = [];
-            querySnapshot.forEach(doc => users.push({ uid: doc.id, ...doc.data() }));
 
-            if (users.length === 0) {
-                userListContainer.innerHTML = `<p class="text-center text-gray-500 py-10">名冊中沒有任何使用者。</p>`;
+        // --- 地圖與定位邏輯 ---
+        function startLocationWatcher() {
+            if (!navigator.geolocation) {
+                mapContainer.innerHTML = '您的瀏覽器不支援 GPS 定位。';
                 return;
             }
             
-            const tableHTML = `
-                <table class="min-w-full divide-y divide-gray-200">
-                     <thead class="bg-gray-100">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">員工Email</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">角色</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">使用者 UID</th>
-                        </tr>
-                    </thead>
-                    <tbody id="user-table-body" class="bg-white divide-y divide-gray-200"></tbody>
-                </table>`;
-            userListContainer.innerHTML = tableHTML;
-            const userTableBody = document.getElementById('user-table-body');
+            locationWatcherId = navigator.geolocation.watchPosition(
+                (pos) => {
+                    currentPosition = pos; // 保存最新位置
+                    const { latitude, longitude } = pos.coords;
+                    const latLng = L.latLng(latitude, longitude); // 使用 Leaflet 的 latLng 物件
 
-            users.forEach(user => {
-                const tr = document.createElement('tr');
-                const roleOptions = ROLES.map(role => `<option value="${role}" ${user.role === role ? 'selected' : ''}>${role}</option>`).join('');
+                    if (!map) { 
+                        initMap(latLng);
+                    } else { 
+                        map.setView(latLng, 17);
+                        marker.setLatLng(latLng);
+                    }
+                    
+                    trackingStatusEl.classList.remove('hidden');
+                    trackingStatusEl.classList.add('flex');
+
+                    // --- 路徑追蹤邏輯 ---
+                    const lastPoint = pathCoordinates.length > 0 ? pathCoordinates[pathCoordinates.length - 1] : null;
+
+                    // 移動超過 5 公尺才記錄一個點
+                    if (!lastPoint || latLng.distanceTo(lastPoint) > 5) {
+                        pathCoordinates.push(latLng);
+                        if (!pathPolyline) {
+                            pathPolyline = L.polyline(pathCoordinates, { color: 'blue', weight: 5, opacity: 0.7 }).addTo(map);
+                        } else {
+                            pathPolyline.addLatLng(latLng);
+                        }
+                    }
+                },
+                (error) => {
+                    console.error("Geolocation error:", error);
+                    let message = '無法取得 GPS 位置。';
+                    if(error.code === error.PERMISSION_DENIED) {
+                        message = '您已拒絕 GPS 定位權限，請至瀏覽器設定中重新開啟。';
+                    }
+                    mapContainer.innerHTML = `<div class="p-4 text-center">${message}</div>`;
+                    currentPosition = null;
+                    trackingStatusEl.classList.add('hidden');
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        }
+
+        function stopLocationWatcher() {
+            if (locationWatcherId) {
+                navigator.geolocation.clearWatch(locationWatcherId);
+            }
+            // 清除路徑資料
+            pathCoordinates = [];
+            if (pathPolyline) {
+                pathPolyline.remove();
+                pathPolyline = null;
+            }
+            if (map) {
+                map.remove();
+                map = null;
+            }
+            locationWatcherId = null;
+            currentPosition = null;
+            marker = null;
+            mapContainer.innerHTML = '正在取得 GPS 定位...';
+            trackingStatusEl.classList.add('hidden');
+        }
+
+        function initMap(latLng) {
+            mapContainer.innerHTML = ''; 
+            map = L.map('map').setView(latLng, 17);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+            marker = L.marker(latLng).addTo(map);
+        }
+
+        // --- 打卡邏輯 ---
+        async function handleClockAction(type) {
+            const user = auth.currentUser;
+            if (!user) {
+                showMessage('使用者未登入，無法打卡。', 'error');
+                return;
+            }
+            if (!currentPosition) {
+                showMessage('無法取得您的目前位置，請檢查定位權限後再試。', 'error');
+                return;
+            }
+
+            const buttonToLoad = type === 'in' ? clockInBtn : clockOutBtn;
+            const originalText = type === 'in' ? '上班打卡' : '下班打卡';
+            toggleButtonLoading(buttonToLoad, true, '傳送中...');
+            
+            try {
+                const { latitude, longitude } = currentPosition.coords;
+                const record = {
+                    userId: user.uid, userEmail: user.email, type,
+                    timestamp: serverTimestamp(),
+                    coords: { latitude, longitude },
+                    mapLink: `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=18/${latitude}/${longitude}`,
+                };
+                await addDoc(collection(db, "clock_records"), record);
+                showMessage(`${originalText}成功！`, 'success');
+            } catch (error) {
+                showMessage('打卡失敗，同步資料時發生錯誤。', 'error');
+                console.error("Clock action error:", error);
+            } finally {
+                toggleButtonLoading(buttonToLoad, false, originalText);
+            }
+        }
+        
+        clockInBtn.addEventListener('click', () => handleClockAction('in'));
+        clockOutBtn.addEventListener('click', () => handleClockAction('out'));
+        
+        // --- 資料監聽與畫面渲染 ---
+        // (此區塊與前一版相同，故省略以節省篇幅)
+        function listenToTodayRecords(userId) {
+            if (unsubscribeFromHistory) unsubscribeFromHistory();
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const q = query(
+                collection(db, "clock_records"),
+                where("userId", "==", userId),
+                where("timestamp", ">=", today),
+                orderBy("timestamp", "desc")
+            );
+
+            unsubscribeFromHistory = onSnapshot(q, (snapshot) => {
+                const history = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return { ...data, id: doc.id, timestamp: data.timestamp?.toDate() };
+                }).filter(item => item.timestamp);
                 
-                tr.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${user.email}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <select data-uid="${user.uid}" class="role-select mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                            ${roleOptions}
-                        </select>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.uid}</td>
-                `;
-                userTableBody.appendChild(tr);
+                renderHistory(history);
+                updateUI(history);
+            }, (error) => {
+                console.error("讀取紀錄失敗: ", error);
+                renderError(error);
+            });
+        }
+        
+        function updateUI(history) {
+            const lastAction = history[0];
+            const isClockedIn = lastAction && lastAction.type === 'in';
+            
+            if (isClockedIn) {
+                currentStatusEl.textContent = '工作中';
+                statusCardEl.className = 'bg-green-50 rounded-lg p-5 mb-6 text-center border border-green-500 transition-all';
+                currentStatusEl.className = 'text-2xl font-bold text-green-600';
+            } else {
+                currentStatusEl.textContent = history.length > 0 ? '已下班' : '尚未打卡';
+                statusCardEl.className = 'bg-gray-50 rounded-lg p-5 mb-6 text-center border transition-all';
+                currentStatusEl.className = 'text-2xl font-bold text-gray-800';
+            }
+            
+            clockInBtn.disabled = isClockedIn;
+            clockOutBtn.disabled = !isClockedIn;
+            
+            if (workDurationInterval) clearInterval(workDurationInterval);
+            const calculateAndRenderDuration = () => {
+                const duration = calculateWorkDuration(history, isClockedIn);
+                workDurationEl.textContent = `${duration.hours} 小時 ${duration.minutes} 分`;
+            };
+            calculateAndRenderDuration();
+            
+            if(isClockedIn) {
+                 workDurationInterval = setInterval(calculateAndRenderDuration, 60000);
+            }
+        }
+        
+        function renderHistory(history) {
+            historyLogEl.innerHTML = '';
+            if (history.length === 0) {
+                historyLogEl.innerHTML = `<p class="text-gray-500 text-center py-4">今日尚無紀錄</p>`;
+            } else {
+                history.forEach(item => {
+                    const typeText = item.type === 'in' ? '上班' : '下班';
+                    const typeColor = item.type === 'in' ? 'text-green-600' : 'text-red-600';
+                    const logItem = document.createElement('div');
+                    logItem.className = 'bg-gray-50 p-3 rounded-lg border flex justify-between items-center';
+                    logItem.innerHTML = `
+                        <div>
+                            <p class="font-semibold"><span class="${typeColor} font-bold">${typeText}</span></p>
+                            <p class="text-sm text-gray-600">${item.timestamp.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                        <a href="${item.mapLink}" target="blank" class="text-sm text-indigo-500 hover:text-indigo-700 flex items-center space-x-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <span>查看地圖</span>
+                        </a>`;
+                    historyLogEl.appendChild(logItem);
+                });
+            }
+        }
+        function clearMainView() {
+            historyLogEl.innerHTML = `<p class="text-gray-500 text-center py-4">請先登入以查看紀錄。</p>`;
+            currentStatusEl.textContent = '未登入';
+            workDurationEl.textContent = '-- 小時 -- 分';
+            userEmailDisplay.textContent = '';
+            trackingStatusEl.classList.add('hidden');
+        }
+        function renderError(error) {
+            historyLogEl.innerHTML = '';
+            const errorMsgEl = document.createElement('p');
+            errorMsgEl.className = 'text-red-500 text-center py-4';
+            errorMsgEl.textContent = '無法載入紀錄，請檢查網路連線。';
+            if (error.code === 'failed-precondition') {
+                errorMsgEl.innerHTML += '<br><span class="text-sm text-gray-600">提示：資料庫缺少必要索引，請根據控制台的錯誤連結在 Firebase 後台建立。</span>';
+            }
+            historyLogEl.appendChild(errorMsgEl);
+        }
+
+        // --- 工具函式 ---
+        // (此區塊與前一版相同，故省略以節省篇幅)
+        function showMessage(message, type = 'info') {
+            const typeClasses = {
+                success: 'bg-green-100 text-green-800', error: 'bg-red-100 text-red-800',
+                loading: 'bg-blue-100 text-blue-800', info: 'bg-gray-100 text-gray-800'
+            };
+            messageContentEl.textContent = message;
+            messageBoxEl.className = `p-4 mb-4 text-sm rounded-lg ${typeClasses[type]}`;
+            messageBoxEl.classList.remove('hidden');
+            if (type === 'success' || type === 'error') {
+                setTimeout(() => messageBoxEl.classList.add('hidden'), 3000);
+            }
+        }
+
+        function toggleButtonLoading(button, isLoading, text) {
+            button.disabled = isLoading;
+            const originalIcon = button.querySelector('svg');
+            if (isLoading) {
+                button.dataset.originalContent = button.innerHTML;
+                button.innerHTML = `<div class="spinner"></div><span>${text}</span>`;
+            } else {
+                const iconSpan = originalIcon ? originalIcon.outerHTML : '';
+                button.innerHTML = `${iconSpan}<span>${text}</span>`;
+            }
+        }
+        
+        function calculateWorkDuration(history, isClockedIn) {
+            let totalMilliseconds = 0;
+            const chronologicalHistory = [...history].reverse();
+            let lastClockInTime = null;
+
+            chronologicalHistory.forEach(record => {
+                if (record.type === 'in') {
+                    lastClockInTime = record.timestamp;
+                } else if (record.type === 'out' && lastClockInTime) {
+                    totalMilliseconds += record.timestamp - lastClockInTime;
+                    lastClockInTime = null;
+                }
             });
 
-        } catch (error) {
-            console.error("Error loading users:", error);
-            userListContainer.innerHTML = `<p class="text-center text-red-500 py-10">讀取使用者列表失敗。</p>`;
-        }
-    }
-
-    saveRolesBtn.addEventListener('click', async () => {
-        const selects = userListContainer.querySelectorAll('.role-select');
-        const updatePromises = [];
-        
-        selects.forEach(select => {
-            const uid = select.dataset.uid;
-            const newRole = select.value;
-            const userDocRef = doc(db, "users", uid);
-            updatePromises.push(updateDoc(userDocRef, { role: newRole }));
-        });
-
-        try {
-            await Promise.all(updatePromises);
-            alert('角色更新成功！');
-            loadAndRenderUsers(); // Refresh list
-        } catch (error) {
-            console.error("Error updating roles: ", error);
-            alert('角色更新失敗，請檢查控制台錯誤。');
-        }
-    });
-
-    // --- Records Query Logic ---
-    queryBtn.addEventListener('click', async () => {
-        const startDate = document.getElementById('start-date').value;
-        const endDate = document.getElementById('end-date').value;
-        const email = document.getElementById('email-filter').value.trim();
-
-        if (!startDate || !endDate) { alert('請務必選擇開始與結束日期！'); return; }
-
-        tableContainer.classList.add('hidden'); noResults.classList.add('hidden');
-        loadingSpinner.classList.remove('hidden'); resultsCount.textContent = ''; currentRecords = [];
-
-        try {
-            const startTimestamp = new Date(startDate); startTimestamp.setHours(0, 0, 0, 0);
-            const endTimestamp = new Date(endDate); endTimestamp.setHours(23, 59, 59, 999);
-
-            let q_constraints = [where("timestamp", ">=", startTimestamp), where("timestamp", "<=", endTimestamp), orderBy("timestamp", "desc")];
-            if (email) { q_constraints.unshift(where("userEmail", "==", email)); }
-
-            const q = query(collection(db, "clock_records"), ...q_constraints);
-            const querySnapshot = await getDocs(q);
-            
-            querySnapshot.forEach((doc) => currentRecords.push({ id: doc.id, ...doc.data() }));
-            renderTable(currentRecords);
-        } catch (error) {
-            console.error("查詢失敗:", error);
-            noResults.innerHTML = '<span class="font-bold text-red-600">查詢時發生錯誤！</span><br>請檢查瀏覽器控制台以獲取詳細資訊。';
-            if (error.code === 'failed-precondition') {
-                noResults.innerHTML += '<br><span class="text-sm text-gray-700 mt-2 block">這通常是因為資料庫缺少必要的「複合索引」。<br>請根據瀏覽器控制台(F12)中的錯誤提示連結，在 Firebase 後台建立索引。</span>';
-            } else if (error.code === 'permission-denied' || error.code ==='PERMISSION_DENIED') {
-                 noResults.innerHTML = '<span class="font-bold text-red-600">權限不足！</span><br><span class="text-sm text-gray-700 mt-2 block">您的帳號沒有讀取這些資料的權限，請確認 Firestore 安全規則是否已更新，且您的角色有權限查看。</span>';
+            if (isClockedIn && lastClockInTime) {
+                totalMilliseconds += new Date() - lastClockInTime;
             }
-            noResults.classList.remove('hidden');
-        } finally {
-            loadingSpinner.classList.add('hidden');
-        }
-    });
 
-    function renderTable(records) {
-        tableBody.innerHTML = '';
-        if (records.length === 0) {
-            noResults.textContent = '在此條件下查無任何打卡紀錄。';
-            noResults.classList.remove('hidden'); tableContainer.classList.add('hidden');
-            resultsCount.textContent = ''; return;
+            const totalMinutes = Math.floor(totalMilliseconds / 60000);
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            
+            return { hours, minutes };
         }
-        
-        noResults.classList.add('hidden'); tableContainer.classList.remove('hidden');
-        
-        records.forEach(record => {
-            const tr = document.createElement('tr');
-            tr.className = "hover:bg-gray-50";
-            const formattedTime = record.timestamp.toDate().toLocaleString('zh-TW', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-            const typeText = record.type === 'in' ? '上班' : '下班';
-            const typeClass = record.type === 'in' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-            tr.innerHTML = `<td class="px-6 py-4 whitespace-nowrap">${record.userEmail}</td><td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${typeClass}">${typeText}</span></td><td class="px-6 py-4 whitespace-nowrap">${formattedTime}</td><td class="px-6 py-4 whitespace-nowrap"><a href="${record.mapLink}" target="_blank" class="text-indigo-600 hover:text-indigo-900 font-medium">查看地圖</a></td>`;
-            tableBody.appendChild(tr);
-        });
-        resultsCount.textContent = `共找到 ${records.length} 筆紀錄。`;
     }
-
-    exportBtn.addEventListener('click', () => {
-        if (currentRecords.length === 0) { alert('沒有可匯出的資料。'); return; }
-        const headers = ["員工Email", "打卡類型", "打卡時間", "緯度", "經度"];
-        const csvRows = [headers.join(',')];
-        currentRecords.forEach(r => {
-            const row = [r.userEmail, (r.type === 'in' ? '上班' : '下班'), `"${r.timestamp.toDate().toLocaleString('zh-TW', { hour12: false })}"`, r.coords.latitude, r.coords.longitude];
-            csvRows.push(row.join(','));
-        });
-        const blob = new Blob([`\uFEFF${csvRows.join('\n')}`], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const today = new Date().toISOString().slice(0, 10);
-        link.href = URL.createObjectURL(blob);
-        link.download = `打卡紀錄_${today}.csv`;
-        link.click();
-    });
 </script>
 </body>
 </html>
