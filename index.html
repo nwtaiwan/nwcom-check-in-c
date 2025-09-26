@@ -412,6 +412,14 @@
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     await checkUserRole(user.uid); // 登入後檢查權限
+                    
+                    // Control Settings Button Visibility
+                    if (currentUserRole === '管理員') {
+                        navSettingsBtn.classList.remove('hidden');
+                    } else {
+                        navSettingsBtn.classList.add('hidden');
+                    }
+
                     document.body.classList.remove('bg-red-600');
                     document.body.classList.add('bg-gray-100');
                     loginView.classList.add('hidden');
@@ -423,6 +431,7 @@
                     showPage('dashboard');
                 } else {
                     currentUserRole = null; // 登出後清除權限
+                    navSettingsBtn.classList.add('hidden'); // Ensure hidden on logout
                     document.body.classList.add('bg-red-600');
                     document.body.classList.remove('bg-gray-100');
                     loginView.classList.remove('hidden');
@@ -466,13 +475,6 @@
                 // 2. Highlight the currently active button
                 activeBtn.classList.remove('text-gray-500');
                 activeBtn.classList.add('text-red-600', 'bg-red-50');
-
-                // 3. Set the visibility of the settings button based on role
-                if (currentUserRole === '管理員') {
-                    navSettingsBtn.classList.remove('hidden');
-                } else {
-                    navSettingsBtn.classList.add('hidden');
-                }
             }
 
             function showPage(pageName) {
