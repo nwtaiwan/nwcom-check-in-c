@@ -456,21 +456,23 @@
 
             function setActiveTab(activeBtn) {
                 const allButtons = [navDashboardBtn, navCheckinBtn, navSettingsBtn];
-                const baseClasses = 'flex-1 p-3 text-center text-gray-500 flex flex-col items-center justify-center space-y-1 transition-colors duration-200';
+                
+                // 1. Reset all buttons to the inactive state
+                allButtons.forEach(btn => {
+                    btn.classList.remove('text-red-600', 'bg-red-50');
+                    btn.classList.add('text-gray-500');
+                });
+                
+                // 2. Highlight the currently active button
+                activeBtn.classList.remove('text-gray-500');
+                activeBtn.classList.add('text-red-600', 'bg-red-50');
 
-                // Reset all buttons to their base, inactive style
-                allButtons.forEach(btn => btn.className = baseClasses);
-
-                // Set visibility based on role
+                // 3. Set the visibility of the settings button based on role
                 if (currentUserRole === '管理員') {
                     navSettingsBtn.classList.remove('hidden');
                 } else {
                     navSettingsBtn.classList.add('hidden');
                 }
-                
-                // Highlight the active button
-                activeBtn.classList.remove('text-gray-500');
-                activeBtn.classList.add('text-red-600', 'bg-red-50');
             }
 
             function showPage(pageName) {
