@@ -32,6 +32,7 @@
             to { transform: rotate(360deg); }
         }
         #map { height: 300px; } /* Increased map height for better view */
+        #camera-modal { z-index: 1000; }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
@@ -170,7 +171,7 @@
     </div>
 
     <!-- Camera Modal -->
-    <div id="camera-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+    <div id="camera-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md flex flex-col max-h-full">
             <header class="p-4 border-b">
                 <h3 id="camera-modal-title" class="text-lg font-bold text-center">打卡成功！</h3>
