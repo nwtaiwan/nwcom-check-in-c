@@ -411,14 +411,10 @@
             
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
-                    await checkUserRole(user.uid); // 登入後檢查權限
+                    await checkUserRole(user.uid);
                     
-                    // Control Settings Button Visibility
-                    if (currentUserRole === '管理員') {
-                        navSettingsBtn.classList.remove('hidden');
-                    } else {
-                        navSettingsBtn.classList.add('hidden');
-                    }
+                    // Always make settings visible for all users as requested
+                    navSettingsBtn.classList.remove('hidden');
 
                     document.body.classList.remove('bg-red-600');
                     document.body.classList.add('bg-gray-100');
@@ -492,7 +488,6 @@
                         setTimeout(() => map.invalidateSize(), 10);
                     }
                 } else if (pageName === 'settings') {
-                    if (currentUserRole !== '管理員') return; // 雙重保險
                     settingsPage.classList.remove('hidden');
                     setActiveTab(navSettingsBtn);
                     showSettingsTab('account'); // 預設顯示帳號分頁
