@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>外勤人員打卡系統</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn/tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- Leaflet Map Library -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -17,6 +17,14 @@
             border-top-color: #fff;
             width: 20px;
             height: 20px;
+            animation: spin 1s ease-in-out infinite;
+        }
+        .spinner-gray {
+            border: 2px solid #e5e7eb; /* gray-200 */
+            border-radius: 50%;
+            border-top-color: #4b5563; /* gray-600 */
+            width: 16px;
+            height: 16px;
             animation: spin 1s ease-in-out infinite;
         }
         @keyframes spin {
@@ -116,9 +124,15 @@
                 <div id="checkin-page" class="hidden">
                      <!-- Map Display -->
                     <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-3 border-b pb-2 flex items-center space-x-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                            <span>目前位置</span>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3 border-b pb-2 flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                                <span>目前位置</span>
+                            </div>
+                            <button id="relocate-btn" class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-1 px-3 rounded-lg border border-gray-300 flex items-center space-x-1.5 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                                <span>重新定位</span>
+                            </button>
                         </h3>
                         <div id="map" class="w-full rounded-lg bg-gray-200 flex items-center justify-center text-gray-500 overflow-hidden">
                             正在取得 GPS 定位...
@@ -182,6 +196,7 @@
     const messageBoxEl = document.getElementById('message-box'), messageContentEl = document.getElementById('message-content');
     const statusCardEl = document.getElementById('status-card');
     const mapContainer = document.getElementById('map');
+    const relocateBtn = document.getElementById('relocate-btn');
     
     // --- 頁面與導覽按鈕 ---
     const dashboardPage = document.getElementById('dashboard-page');
@@ -214,7 +229,7 @@
         const auth = getAuth(app);
         
         initializeLoginScreen();
-        initializeNavigation(); // 初始化導覽列
+        initializeNavigation(); 
         
         onAuthStateChanged(auth, user => {
             if (user) {
@@ -224,7 +239,7 @@
                 userEmailDisplay.textContent = `歡迎, ${user.email}`;
                 listenToTodayRecords(user.uid);
                 startLocationWatcher();
-                showPage('dashboard'); // 登入後預設顯示儀表板
+                showPage('dashboard');
             } else {
                 loginView.classList.remove('hidden');
                 loginView.classList.remove('flex-1', 'overflow-y-auto');
@@ -237,10 +252,11 @@
             }
         });
         
-        // --- 頁面切換邏輯 ---
+        // --- 頁面切換與互動邏輯 ---
         function initializeNavigation() {
             navDashboardBtn.addEventListener('click', () => showPage('dashboard'));
             navCheckinBtn.addEventListener('click', () => showPage('checkin'));
+            relocateBtn.addEventListener('click', forceRelocate);
         }
 
         function setActiveTab(activeBtn) {
@@ -261,11 +277,49 @@
                 dashboardPage.classList.add('hidden');
                 checkinPage.classList.remove('hidden');
                 setActiveTab(navCheckinBtn);
-                // 當地圖容器從 hidden 變為可見時，需要重新計算地圖尺寸
                 if (map) {
                     setTimeout(() => map.invalidateSize(), 10);
                 }
             }
+        }
+
+        function forceRelocate() {
+            if (!navigator.geolocation) {
+                showMessage('您的瀏覽器不支援 GPS 定位。', 'error');
+                return;
+            }
+
+            relocateBtn.disabled = true;
+            relocateBtn.innerHTML = `<div class="spinner-gray"></div><span class="text-xs">定位中</span>`;
+            
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    currentPosition = pos;
+                    const { latitude, longitude } = pos.coords;
+                    const latLng = L.latLng(latitude, longitude);
+
+                    if (!map) {
+                        initMap(latLng);
+                    } else {
+                        map.setView(latLng, 17);
+                        marker.setLatLng(latLng);
+                    }
+                    showMessage('位置已更新！', 'success');
+                },
+                (error) => {
+                    let message = '無法取得 GPS 位置。';
+                    if (error.code === error.PERMISSION_DENIED) {
+                        message = '您已拒絕 GPS 定位權限。';
+                    }
+                    showMessage(message, 'error');
+                    mapContainer.innerHTML = `<div class="p-4 text-center">${message}</div>`;
+                    currentPosition = null;
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            ).finally(() => {
+                relocateBtn.disabled = false;
+                relocateBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span>重新定位</span>`;
+            });
         }
 
         // --- 登入/登出相關 ---
@@ -333,7 +387,7 @@
 
         // --- 地圖與定位邏輯 ---
         function startLocationWatcher() {
-            if (locationWatcherId) return; // 防止重複啟動
+            if (locationWatcherId) return;
             if (!navigator.geolocation) {
                 mapContainer.innerHTML = '您的瀏覽器不支援 GPS 定位。';
                 return;
