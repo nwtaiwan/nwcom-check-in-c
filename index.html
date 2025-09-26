@@ -1162,27 +1162,17 @@
                     };
 
                     try {
-                        console.log("步驟 1/4: 正在建立 Firebase Auth 使用者...");
                         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                         const user = userCredential.user;
-                        console.log("步驟 1/4: Auth 使用者建立成功。 UID:", user.uid);
 
                         if (profilePhotoFile) {
-                            console.log("步驟 2/4: 正在上傳大頭照...");
                             const photoRef = ref(storage, `profile_pictures/${user.uid}`);
                             const uploadResult = await uploadBytes(photoRef, profilePhotoFile);
                             userData.photoURL = await getDownloadURL(uploadResult.ref);
-                            console.log("步驟 2/4: 大頭照上傳成功。 URL:", userData.photoURL);
-                        } else {
-                            console.log("步驟 2/4: 無大頭照，已略過上傳。");
                         }
 
-                        console.log("步驟 3/4: 正在將使用者資料寫入 Firestore...");
                         await setDoc(doc(db, "users", user.uid), userData);
-                        console.log("步驟 3/4: Firestore 資料寫入成功。");
-
                         showMessage(`帳號 ${userData.name} 已成功建立。`, 'success');
-                        console.log("步驟 4/4: 流程完成。");
                         closeAddAccountModal();
                     } catch (error) {
                         console.error("新增帳號時發生詳細錯誤:", error);
@@ -1212,19 +1202,13 @@
                     };
                     
                     try {
-                        console.log("步驟 1/3: 正在更新帳號資料，使用者 ID:", userId);
                         if (editProfilePhotoFile) {
-                            console.log("步驟 2/3: 偵測到新照片，正在上傳...");
                             const photoRef = ref(storage, `profile_pictures/${userId}`);
                             const uploadResult = await uploadBytes(photoRef, editProfilePhotoFile);
                             updatedData.photoURL = await getDownloadURL(uploadResult.ref);
-                            console.log("步驟 2/3: 新照片上傳成功。 URL:", updatedData.photoURL);
-                        } else {
-                             console.log("步驟 2/3: 無新照片，已略過上傳。");
                         }
                         
                         await updateDoc(userDocRef, updatedData);
-                        console.log("步驟 3/3: Firestore 資料更新成功。");
                         showMessage('帳號資料已更新', 'success');
                         closeEditAccountModal();
                     } catch (error) {
@@ -1241,18 +1225,11 @@
                     const userId = confirmDeleteBtn.dataset.userId;
                     if (!userId) return;
                     
-                    console.log("正在刪除使用者資料，ID:", userId);
-                    // 注意：此操作只會刪除 Firestore 中的資料庫紀錄和 Storage 中的照片。
-                    // 出於安全考量，無法從前端直接刪除 Firebase Authentication 中的使用者帳號。
-                    // 這通常需要透過後端（如 Cloud Functions）來實現。
                     try {
                         await deleteDoc(doc(db, "users", userId));
-                        console.log("Firestore 文件已刪除。");
                         
                         const photoRef = ref(storage, `profile_pictures/${userId}`);
-                        deleteObject(photoRef).then(() => {
-                            console.log("Storage 中的大頭照已刪除。");
-                        }).catch(error => {
+                        deleteObject(photoRef).catch(error => {
                             if (error.code !== 'storage/object-not-found') {
                                 console.error("刪除大頭照失敗:", error);
                             }
@@ -1260,7 +1237,7 @@
                         
                         showMessage('帳號資料已刪除', 'success');
                     } catch(error) {
-                        console.error("刪除帳號時發生詳細錯誤:", error);
+                        console.error("刪除帳號失敗:", error);
                         let message = '刪除帳號失敗。';
                         if (error.code === 'permission-denied') message = '權限不足，請檢查 Firebase 安全規則。';
                         showMessage(message, 'error');
@@ -1442,11 +1419,15 @@
 
                 function toggleButtonLoading(button, isLoading, text) {
                     button.disabled = isLoading;
-                    const originalContent = button.innerHTML;
+                    const originalSpan = button.querySelector('span');
+                    const originalText = originalSpan ? originalSpan.textContent : '';
+
                     if (isLoading) {
+                        button.dataset.originalText = originalText;
                         button.innerHTML = `<div class="spinner"></div><span>${text}</span>`;
                     } else {
-                        button.innerHTML = originalContent.replace(/<div class="spinner"><\/div>/, '').replace(/<span>.*<\/span>/, `<span>${text}</span>`);
+                        const buttonText = button.dataset.originalText || text;
+                         button.innerHTML = button.innerHTML.replace(/<div class="spinner"><\/div>/, '').replace(/<span>.*<\/span>/, `<span>${buttonText}</span>`);
                     }
                 }
                 
