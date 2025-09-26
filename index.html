@@ -70,7 +70,7 @@
                     </div>
                     <button id="login-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 flex items-center justify-center space-x-2">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
-                        <span>登入系統</span>
+                        <span>登入</span>
                     </button>
                     <p id="login-message" class="text-red-500 text-sm text-center min-h-[20px]"></p>
                 </div>
@@ -210,19 +210,6 @@
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
         
-        /*
-         * [Firebase 登入錯誤修正]
-         * 錯誤訊息 "auth/requests-from-referer...-are-blocked" 表示您目前的網域未被授權。
-         *
-         * 請依照以下步驟解決：
-         * 1. 前往您的 Firebase 專案控制台。
-         * 2. 點擊左側選單的「Authentication」。
-         * 3. 選擇「Settings」分頁。
-         * 4. 在「已授權的網域 (Authorized domains)」區塊，點擊「新增網域 (Add domain)」。
-         * 5. 將以下網域複製並貼上：
-         * 5gtug96rgjf6alk3rozmtp83jrjefduxhkxsp36145yg5tcb3t-h807678934.scf.usercontent.goog
-         * 6. 點擊「新增」後，您的應用程式應該就能正常登入了。
-         */
         const firebaseConfig = {
           apiKey: "AIzaSyDr9Bk0x0MiauuO_mzPOnLhYdhJ08pdxLo",
           authDomain: "nwcom-check-in.firebaseapp.com",
@@ -407,7 +394,7 @@
                     const message = (error.code === 'auth/invalid-credential') ? '登入失敗，帳號或密碼錯誤。' : '登入時發生未知錯誤。';
                     loginMessage.textContent = message;
                 } finally {
-                    toggleButtonLoading(loginBtn, false);
+                    toggleButtonLoading(loginBtn, false, '登入');
                 }
             });
             
@@ -488,6 +475,7 @@
                 if (!currentPosition) { showMessage('無法取得您的目前位置，請檢查定位權限後再試。', 'error'); return; }
 
                 const buttonToLoad = type === 'in' ? clockInBtn : clockOutBtn;
+                const originalText = type === 'in' ? '上班打卡' : '下班打卡';
                 toggleButtonLoading(buttonToLoad, true, '傳送中...');
                 
                 try {
@@ -506,7 +494,7 @@
                     showMessage('打卡失敗，同步資料時發生錯誤。', 'error');
                     console.error("Clock action error:", error);
                 } finally {
-                    toggleButtonLoading(buttonToLoad, false);
+                    toggleButtonLoading(buttonToLoad, false, originalText);
                 }
             }
             
@@ -528,56 +516,52 @@
             }
 
             async function takePhotoWithWatermark(auth, db, storage) {
-                if (videoElement.readyState < 3) { // Use readyState to check if video has enough data
-                    showMessage('相機尚未準備完成，請稍候。', 'error');
+                const recordId = cameraModal.dataset.recordId;
+                if (!recordId) {
+                    showMessage('錯誤：找不到打卡紀錄ID。', 'error');
                     return;
                 }
-                toggleButtonLoading(takePhotoBtn, true, '處理中...');
+
+                const video = videoElement;
+                const canvas = canvasElement;
+                const context = canvas.getContext('2d');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                const user = auth.currentUser;
+                const now = new Date();
+                const dateTime = now.toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                const userEmail = user ? user.email : 'N/A';
+                const gpsCoords = currentPosition ? `${currentPosition.coords.latitude.toFixed(5)}, ${currentPosition.coords.longitude.toFixed(5)}` : 'No GPS';
+                const description = photoDescriptionInput.value.trim();
+
+                const textLines = [dateTime, userEmail, `GPS: ${gpsCoords}`];
+                if (description) {
+                    textLines.push(description);
+                }
+
+                context.font = '24px "Noto Sans TC"';
+                context.textBaseline = 'bottom';
                 
+                const padding = 10;
+                const lineHeight = 30;
+                const boxHeight = (lineHeight * textLines.length) + (padding * 2);
+                
+                context.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                const textWidth = Math.max(...textLines.map(line => context.measureText(line).width));
+                const boxWidth = textWidth + (padding * 2);
+                context.fillRect(padding, canvas.height - boxHeight - padding, boxWidth, boxHeight);
+                
+                context.fillStyle = 'white';
+                textLines.forEach((line, index) => {
+                    context.fillText(line, padding * 2, canvas.height - padding - (lineHeight * (textLines.length - 1 - index) ));
+                });
+                
+                const dataUrl = canvas.toDataURL('image/jpeg');
+                
+                // --- Upload photo and update record ---
                 try {
-                    const recordId = cameraModal.dataset.recordId;
-                    if (!recordId) {
-                        throw new Error('找不到打卡紀錄ID。');
-                    }
-
-                    const video = videoElement;
-                    const canvas = canvasElement;
-                    const context = canvas.getContext('2d');
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                    const user = auth.currentUser;
-                    const now = new Date();
-                    const dateTime = now.toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                    const userEmail = user ? user.email : 'N/A';
-                    const gpsCoords = currentPosition ? `${currentPosition.coords.latitude.toFixed(5)}, ${currentPosition.coords.longitude.toFixed(5)}` : 'No GPS';
-                    const description = photoDescriptionInput.value.trim();
-
-                    const textLines = [dateTime, userEmail, `GPS: ${gpsCoords}`];
-                    if (description) {
-                        textLines.push(description);
-                    }
-
-                    context.font = '24px "Noto Sans TC"';
-                    context.textBaseline = 'bottom';
-                    
-                    const padding = 10;
-                    const lineHeight = 30;
-                    const boxHeight = (lineHeight * textLines.length) + (padding * 2);
-                    
-                    context.fillStyle = 'rgba(0, 0, 0, 0.6)';
-                    const textWidth = Math.max(...textLines.map(line => context.measureText(line).width));
-                    const boxWidth = textWidth + (padding * 2);
-                    context.fillRect(padding, canvas.height - boxHeight - padding, boxWidth, boxHeight);
-                    
-                    context.fillStyle = 'white';
-                    textLines.forEach((line, index) => {
-                        context.fillText(line, padding * 2, canvas.height - padding - (lineHeight * (textLines.length - 1 - index) ));
-                    });
-                    
-                    const dataUrl = canvas.toDataURL('image/jpeg');
-                    
                     const photoName = `${Date.now()}.jpg`;
                     const storageRef = ref(storage, `photos/${user.uid}/${recordId}/${photoName}`);
                     const uploadResult = await uploadString(storageRef, dataUrl, 'data_url');
@@ -592,14 +576,12 @@
                     img.src = dataUrl;
                     img.className = 'w-full h-auto object-cover rounded';
                     photoPreviewContainer.appendChild(img);
-                    photoDescriptionInput.value = '';
+                    photoDescriptionInput.value = ''; // Clear description after photo is taken
                     showMessage('照片已上傳！', 'success');
 
                 } catch (error) {
-                    console.error("Photo action error:", error);
-                    showMessage(`拍照或上傳失敗: ${error.message}`, 'error');
-                } finally {
-                    toggleButtonLoading(takePhotoBtn, false);
+                    console.error("Photo upload error:", error);
+                    showMessage('照片上傳失敗。', 'error');
                 }
             }
 
@@ -733,16 +715,15 @@
                 }
             }
 
-            function toggleButtonLoading(button, isLoading, loadingText = '') {
+            function toggleButtonLoading(button, isLoading, text) {
+                button.disabled = isLoading;
+                const originalIcon = button.querySelector('svg');
                 if (isLoading) {
-                    button.dataset.originalHtml = button.innerHTML;
-                    button.disabled = true;
-                    button.innerHTML = `<div class="spinner"></div><span>${loadingText}</span>`;
+                    button.dataset.originalContent = button.innerHTML;
+                    button.innerHTML = `<div class="spinner"></div><span>${text}</span>`;
                 } else {
-                    if (button.dataset.originalHtml) {
-                        button.innerHTML = button.dataset.originalHtml;
-                    }
-                    button.disabled = false;
+                    const iconSpan = originalIcon ? originalIcon.outerHTML : '';
+                    button.innerHTML = `${iconSpan}<span>${text}</span>`;
                 }
             }
             
