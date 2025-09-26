@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>外勤人員打卡系統 (路徑追蹤版)</title>
+    <title>外勤人員打卡系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- Leaflet Map Library -->
@@ -23,19 +23,6 @@
             to { transform: rotate(360deg); }
         }
         #map { height: 300px; } /* Increased map height for better view */
-        .blinking-dot {
-            height: 8px;
-            width: 8px;
-            background-color: #f87171; /* red-400 */
-            border-radius: 50%;
-            display: inline-block;
-            animation: blink-animation 1.5s infinite ease-in-out;
-        }
-        @keyframes blink-animation {
-            0% { opacity: 1; }
-            50% { opacity: 0.2; }
-            100% { opacity: 1; }
-        }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
@@ -132,10 +119,6 @@
                         <h3 class="text-lg font-semibold text-gray-800 mb-3 border-b pb-2 flex items-center space-x-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
                             <span>目前位置</span>
-                            <span id="tracking-status" class="ml-2 hidden items-center">
-                                <span class="blinking-dot"></span>
-                                <span class="ml-1.5 text-sm font-normal text-gray-600">路徑追蹤中</span>
-                            </span>
                         </h3>
                         <div id="map" class="w-full rounded-lg bg-gray-200 flex items-center justify-center text-gray-500 overflow-hidden">
                             正在取得 GPS 定位...
@@ -199,9 +182,8 @@
     const messageBoxEl = document.getElementById('message-box'), messageContentEl = document.getElementById('message-content');
     const statusCardEl = document.getElementById('status-card');
     const mapContainer = document.getElementById('map');
-    const trackingStatusEl = document.getElementById('tracking-status');
     
-    // --- 新增: 頁面與導覽按鈕 ---
+    // --- 頁面與導覽按鈕 ---
     const dashboardPage = document.getElementById('dashboard-page');
     const checkinPage = document.getElementById('checkin-page');
     const navDashboardBtn = document.getElementById('nav-dashboard-btn');
@@ -212,7 +194,6 @@
     
     let workDurationInterval = null, unsubscribeFromHistory = null;
     let map = null, marker = null, currentPosition = null, locationWatcherId = null;
-    let pathCoordinates = [], pathPolyline = null;
 
     // --- Firebase 設定檢查 ---
     function checkFirebaseConfig() {
@@ -256,7 +237,7 @@
             }
         });
         
-        // --- 新增: 頁面切換邏輯 ---
+        // --- 頁面切換邏輯 ---
         function initializeNavigation() {
             navDashboardBtn.addEventListener('click', () => showPage('dashboard'));
             navCheckinBtn.addEventListener('click', () => showPage('checkin'));
@@ -370,19 +351,6 @@
                         map.setView(latLng, 17);
                         marker.setLatLng(latLng);
                     }
-                    
-                    trackingStatusEl.classList.remove('hidden');
-                    trackingStatusEl.classList.add('flex');
-
-                    const lastPoint = pathCoordinates.length > 0 ? pathCoordinates[pathCoordinates.length - 1] : null;
-                    if (!lastPoint || latLng.distanceTo(lastPoint) > 5) {
-                        pathCoordinates.push(latLng);
-                        if (!pathPolyline) {
-                            pathPolyline = L.polyline(pathCoordinates, { color: 'blue', weight: 5, opacity: 0.7 }).addTo(map);
-                        } else {
-                            pathPolyline.addLatLng(latLng);
-                        }
-                    }
                 },
                 (error) => {
                     console.error("Geolocation error:", error);
@@ -392,7 +360,6 @@
                     }
                     mapContainer.innerHTML = `<div class="p-4 text-center">${message}</div>`;
                     currentPosition = null;
-                    trackingStatusEl.classList.add('hidden');
                 },
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
@@ -402,10 +369,6 @@
             if (locationWatcherId) {
                 navigator.geolocation.clearWatch(locationWatcherId);
             }
-            pathCoordinates = [];
-            if (pathPolyline && map) {
-                pathPolyline.remove();
-            }
             if (map) {
                 map.remove();
                 map = null;
@@ -413,9 +376,7 @@
             locationWatcherId = null;
             currentPosition = null;
             marker = null;
-            pathPolyline = null;
             mapContainer.innerHTML = '正在取得 GPS 定位...';
-            trackingStatusEl.classList.add('hidden');
         }
 
         function initMap(latLng) {
@@ -546,7 +507,6 @@
             currentStatusEl.textContent = '未登入';
             workDurationEl.textContent = '-- 小時 -- 分';
             userEmailDisplay.textContent = '';
-            trackingStatusEl.classList.add('hidden');
         }
         function renderError(error) {
             historyLogEl.innerHTML = '';
