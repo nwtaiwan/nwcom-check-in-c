@@ -32,7 +32,7 @@
             to { transform: rotate(360deg); }
         }
         #map { height: 300px; } /* Increased map height for better view */
-        #camera-modal, #add-account-modal { z-index: 1000; }
+        #camera-modal, #add-account-modal, #map-modal { z-index: 1000; }
     </style>
 </head>
 <body class="bg-red-600 flex justify-center min-h-screen pt-[10px] px-[10px] pb-[80px]">
@@ -243,6 +243,21 @@
         </div>
     </div>
 
+    <!-- Map Modal -->
+    <div id="map-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-[1100]">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md flex flex-col max-h-[90vh]">
+            <header class="p-4 border-b flex justify-between items-center">
+                <h3 class="text-lg font-bold">打卡位置</h3>
+                <button id="close-map-modal-btn" class="text-gray-400 hover:text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </header>
+            <main class="flex-1 bg-gray-200">
+                <div id="record-map" class="w-full h-full"></div>
+            </main>
+        </div>
+    </div>
+
     <!-- Add Account Modal -->
     <div id="add-account-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md flex flex-col max-h-full">
@@ -363,6 +378,10 @@
         const photoPreviewContainer = document.getElementById('photo-preview-container');
         const photoDescriptionInput = document.getElementById('photo-description');
 
+        // --- 地圖 Modal 元素 ---
+        const mapModal = document.getElementById('map-modal');
+        const closeMapModalBtn = document.getElementById('close-map-modal-btn');
+
         const eyeIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
         const eyeOffIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" x2="22" y1="2" y2="22"></line></svg>`;
         
@@ -370,6 +389,7 @@
         let map = null, marker = null, currentPosition = null;
         let cameraStream = null;
         let currentUserRole = null;
+        let recordMap = null, recordMapMarker = null;
 
         // --- Firebase 設定檢查 ---
         function checkFirebaseConfig() {
@@ -449,6 +469,7 @@
                 relocateBtn.addEventListener('click', forceRelocate);
                 takePhotoBtn.addEventListener('click', takePhotoWithWatermark);
                 closeCameraBtn.addEventListener('click', closeCameraModal);
+                closeMapModalBtn.addEventListener('click', closeMapModal);
 
                 // 設定頁面監聽
                 settingsAccountTabBtn.addEventListener('click', () => showSettingsTab('account'));
@@ -457,6 +478,18 @@
                 closeAddAccountModalBtn.addEventListener('click', closeAddAccountModal);
                 cancelAddAccountBtn.addEventListener('click', closeAddAccountModal);
                 addAccountForm.addEventListener('submit', handleAddAccountSubmit);
+
+                // 打卡紀錄地圖按鈕的事件代理
+                historyLogEl.addEventListener('click', (e) => {
+                    const mapButton = e.target.closest('.map-link-btn');
+                    if (mapButton) {
+                        const lat = mapButton.dataset.lat;
+                        const lon = mapButton.dataset.lon;
+                        if (lat && lon) {
+                            showMapModal(parseFloat(lat), parseFloat(lon));
+                        }
+                    }
+                });
             }
 
             function setActiveTab(activeBtn) {
@@ -664,7 +697,6 @@
                         userId: user.uid, userEmail: user.email, type,
                         timestamp: serverTimestamp(),
                         coords: { latitude, longitude },
-                        mapLink: `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=18/${latitude}/${longitude}`,
                         photoURLs: []
                     };
                     const docRef = await addDoc(collection(db, "clock_records"), record);
@@ -694,6 +726,35 @@
                     closeCameraModal();
                 }
             }
+
+            function showMapModal(lat, lon) {
+                mapModal.classList.remove('hidden');
+                const latLng = L.latLng(lat, lon);
+
+                setTimeout(() => {
+                    if (!recordMap) {
+                        recordMap = L.map('record-map').setView(latLng, 17);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            maxZoom: 19,
+                            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                        }).addTo(recordMap);
+                        recordMapMarker = L.marker(latLng).addTo(recordMap);
+                    } else {
+                        recordMap.setView(latLng, 17);
+                        recordMapMarker.setLatLng(latLng);
+                    }
+                    recordMap.invalidateSize();
+                }, 10);
+            }
+
+            function closeMapModal() {
+                mapModal.classList.add('hidden');
+                if (recordMap) {
+                    recordMap.remove();
+                    recordMap = null;
+                }
+            }
+
 
             async function takePhotoWithWatermark() {
                 const video = videoElement;
@@ -945,6 +1006,13 @@
                             </a>`).join('');
                         }
 
+                        const mapBtnHtml = item.coords ? `
+                            <button data-lat="${item.coords.latitude}" data-lon="${item.coords.longitude}" class="map-link-btn text-sm text-indigo-500 hover:text-indigo-700 flex items-center space-x-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                                <span>地圖</span>
+                            </button>
+                        ` : '';
+
                         logItem.innerHTML = `
                         <div class="flex-1">
                             <p class="font-semibold"><span class="${typeColor} font-bold">${typeText}</span></p>
@@ -952,10 +1020,7 @@
                         </div>
                         <div class="flex items-center space-x-3">
                             ${photoLinkHtml}
-                            <a href="${item.mapLink}" target="_blank" class="text-sm text-indigo-500 hover:text-indigo-700 flex items-center space-x-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                                <span>地圖</span>
-                            </a>
+                            ${mapBtnHtml}
                         </div>`;
                         historyLogEl.appendChild(logItem);
                     });
