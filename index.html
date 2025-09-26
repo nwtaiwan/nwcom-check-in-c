@@ -178,7 +178,7 @@
                                 </button>
                             </div>
                             <div id="account-list" class="space-y-3">
-                                <p class="text-gray-500 text-center py-4">尚無帳號資料</p>
+                                <p class="text-gray-500 text-center py-4">正在載入帳號資料...</p>
                             </div>
                         </div>
 
@@ -256,19 +256,19 @@
                 <form id="add-account-form" class="space-y-4">
                     <div>
                         <label for="new-account-username" class="block text-sm font-medium text-gray-700">帳號</label>
-                        <input type="text" id="new-account-username" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
+                        <input type="text" id="new-account-username" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
                     </div>
                     <div>
                         <label for="new-account-email" class="block text-sm font-medium text-gray-700">電子郵件</label>
-                        <input type="email" id="new-account-email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
+                        <input type="email" id="new-account-email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
                     </div>
                     <div>
                         <label for="new-account-password" class="block text-sm font-medium text-gray-700">密碼</label>
-                        <input type="password" id="new-account-password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
+                        <input type="password" id="new-account-password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
                     </div>
                      <div>
                         <label for="new-account-name" class="block text-sm font-medium text-gray-700">姓名</label>
-                        <input type="text" id="new-account-name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
+                        <input type="text" id="new-account-name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
                     </div>
                     <div>
                         <label for="new-account-role" class="block text-sm font-medium text-gray-700">角色</label>
@@ -291,7 +291,7 @@
                 <button id="cancel-add-account-btn" type="button" class="bg-white hover:bg-gray-100 text-gray-700 font-bold py-2 px-4 rounded-lg border">
                     取消
                 </button>
-                 <button id="submit-add-account-btn" type="submit" form="add-account-form" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">
+                 <button id="submit-add-account-btn" type="submit" form="add-account-form" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center">
                     儲存
                 </button>
             </footer>
@@ -301,8 +301,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, where, onSnapshot, serverTimestamp, orderBy, doc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, serverTimestamp, orderBy, doc, updateDoc, arrayUnion, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
         
         const firebaseConfig = {
@@ -351,6 +351,7 @@
         const closeAddAccountModalBtn = document.getElementById('close-add-account-modal-btn');
         const cancelAddAccountBtn = document.getElementById('cancel-add-account-btn');
         const addAccountForm = document.getElementById('add-account-form');
+        const submitAddAccountBtn = document.getElementById('submit-add-account-btn');
 
         // --- 相機 Modal 元素 ---
         const cameraModal = document.getElementById('camera-modal');
@@ -365,7 +366,7 @@
         const eyeIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
         const eyeOffIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" x2="22" y1="2" y2="22"></line></svg>`;
         
-        let workDurationInterval = null, unsubscribeFromHistory = null;
+        let workDurationInterval = null, unsubscribeFromHistory = null, unsubscribeFromAccounts = null;
         let map = null, marker = null, currentPosition = null;
         let cameraStream = null;
 
@@ -409,6 +410,7 @@
                     mainView.classList.add('hidden');
                     mainView.classList.remove('flex');
                     if (unsubscribeFromHistory) unsubscribeFromHistory();
+                    if (unsubscribeFromAccounts) unsubscribeFromAccounts();
                     if (workDurationInterval) clearInterval(workDurationInterval);
                     cleanupLocationOnLogout();
                     clearMainView();
@@ -460,6 +462,7 @@
                     settingsPage.classList.remove('hidden');
                     setActiveTab(navSettingsBtn);
                     showSettingsTab('account'); // 預設顯示帳號分頁
+                    listenToAccounts(); // 進入設定頁時開始監聽
                 }
             }
             
@@ -749,7 +752,7 @@
             clockInBtn.addEventListener('click', () => handleClockAction('in'));
             clockOutBtn.addEventListener('click', () => handleClockAction('out'));
             
-            // --- 設定頁面 Modal ---
+            // --- 設定頁面 Modal 與帳號管理 ---
             function openAddAccountModal() {
                 addAccountModal.classList.remove('hidden');
             }
@@ -761,9 +764,84 @@
 
             async function handleAddAccountSubmit(e) {
                 e.preventDefault();
+                toggleButtonLoading(submitAddAccountBtn, true, '儲存中...');
+                
                 const email = document.getElementById('new-account-email').value;
-                showMessage(`帳號 ${email} 新增請求已送出。`, 'success');
-                closeAddAccountModal();
+                const password = document.getElementById('new-account-password').value;
+
+                const userData = {
+                    username: document.getElementById('new-account-username').value,
+                    email: email,
+                    name: document.getElementById('new-account-name').value,
+                    role: document.getElementById('new-account-role').value,
+                    title: document.getElementById('new-account-title').value,
+                    phone: document.getElementById('new-account-phone').value,
+                    createdAt: serverTimestamp()
+                };
+
+                try {
+                    // 步驟 1: 在 Firebase Authentication 建立使用者
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    const user = userCredential.user;
+
+                    // 步驟 2: 使用者的 UID 作為文件 ID，將設定檔存儲在 Firestore 中
+                    await setDoc(doc(db, "users", user.uid), userData);
+
+                    showMessage(`帳號 ${userData.name} 已成功建立。`, 'success');
+                    closeAddAccountModal();
+                } catch (error) {
+                    console.error("新增帳號失敗:", error);
+                    let message = '新增帳號失敗，請稍後再試。';
+                    if (error.code === 'auth/email-already-in-use') {
+                        message = '此電子郵件已被註冊。';
+                    } else if (error.code === 'auth/weak-password') {
+                        message = '密碼強度不足，請設定至少6位數的密碼。';
+                    }
+                    showMessage(message, 'error');
+                } finally {
+                    toggleButtonLoading(submitAddAccountBtn, false, '儲存');
+                }
+            }
+
+            function listenToAccounts() {
+                if (unsubscribeFromAccounts) unsubscribeFromAccounts(); // 取消先前的監聽
+                
+                const q = query(collection(db, "users"), orderBy("createdAt", "desc"));
+                
+                unsubscribeFromAccounts = onSnapshot(q, (snapshot) => {
+                    const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderAccountList(users);
+                }, (error) => {
+                    console.error("Error listening to accounts:", error);
+                    accountList.innerHTML = `<p class="text-red-500 text-center py-4">無法載入帳號資料。</p>`;
+                });
+            }
+
+            function renderAccountList(users) {
+                accountList.innerHTML = '';
+                if (users.length === 0) {
+                    accountList.innerHTML = `<p class="text-gray-500 text-center py-4">尚無帳號資料</p>`;
+                    return;
+                }
+
+                users.forEach(user => {
+                    const userCard = document.createElement('div');
+                    userCard.className = 'bg-white p-4 rounded-lg border flex justify-between items-center';
+                    
+                    const roleColor = user.role === '管理員' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800';
+
+                    userCard.innerHTML = `
+                        <div>
+                            <p class="font-bold text-gray-800">${user.name} <span class="text-sm font-medium ml-2 px-2 py-0.5 rounded-full ${roleColor}">${user.role}</span></p>
+                            <p class="text-sm text-gray-600">${user.email}</p>
+                            <p class="text-sm text-gray-500">${user.title || '無職稱'}</p>
+                        </div>
+                        <div>
+                           <!-- 未來可放編輯/刪除按鈕 -->
+                        </div>
+                    `;
+                    accountList.appendChild(userCard);
+                });
             }
 
             // --- 資料監聽與畫面渲染 ---
@@ -888,13 +966,11 @@
 
             function toggleButtonLoading(button, isLoading, text) {
                 button.disabled = isLoading;
-                const originalIcon = button.querySelector('svg');
+                const originalContent = button.innerHTML;
                 if (isLoading) {
-                    button.dataset.originalContent = button.innerHTML;
                     button.innerHTML = `<div class="spinner"></div><span>${text}</span>`;
                 } else {
-                    const iconSpan = originalIcon ? originalIcon.outerHTML : '';
-                    button.innerHTML = `${iconSpan}<span>${text}</span>`;
+                    button.innerHTML = `<span>${text}</span>`;
                 }
             }
             
