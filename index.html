@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>外勤人員打卡系統</title>
-    <script src="https://cdn/tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- Leaflet Map Library -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -168,382 +168,382 @@
         </div>
     </div>
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, where, onSnapshot, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    
-    const firebaseConfig = {
-      apiKey: "AIzaSyDr9Bk0x0MiauuO_mzPOnLhYdhJ08pdxLo",
-      authDomain: "nwcom-check-in.firebaseapp.com",
-      projectId: "nwcom-check-in",
-      storageBucket: "nwcom-check-in.appspot.com",
-      messagingSenderId: "598559960060",
-      appId: "1:598559960060:web:197586299700c85a256079",
-      measurementId: "G-2WY1HVMD2S"
-    };
-
-    // --- DOM 元素 ---
-    const loginView = document.getElementById('login-view'), mainView = document.getElementById('main-view');
-    const emailInput = document.getElementById('email'), passwordInput = document.getElementById('login-password');
-    const togglePasswordBtn = document.getElementById('toggle-password-btn'), rememberMeCheckbox = document.getElementById('remember-me');
-    const loginBtn = document.getElementById('login-btn'), loginMessage = document.getElementById('login-message');
-    const logoutBtn = document.getElementById('logout-btn'), userEmailDisplay = document.getElementById('user-email-display');
-    const forgotPasswordLink = document.getElementById('forgot-password-link');
-    const currentStatusEl = document.getElementById('current-status'), workDurationEl = document.getElementById('work-duration');
-    const clockInBtn = document.getElementById('clock-in-btn'), clockOutBtn = document.getElementById('clock-out-btn');
-    const historyLogEl = document.getElementById('history-log');
-    const messageBoxEl = document.getElementById('message-box'), messageContentEl = document.getElementById('message-content');
-    const statusCardEl = document.getElementById('status-card');
-    const mapContainer = document.getElementById('map');
-    const relocateBtn = document.getElementById('relocate-btn');
-    
-    // --- 頁面與導覽按鈕 ---
-    const dashboardPage = document.getElementById('dashboard-page');
-    const checkinPage = document.getElementById('checkin-page');
-    const navDashboardBtn = document.getElementById('nav-dashboard-btn');
-    const navCheckinBtn = document.getElementById('nav-checkin-btn');
-
-    const eyeIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
-    const eyeOffIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" x2="22" y1="2" y2="22"></line></svg>`;
-    
-    let workDurationInterval = null, unsubscribeFromHistory = null;
-    let map = null, marker = null, currentPosition = null, locationWatcherId = null;
-
-    // --- Firebase 設定檢查 ---
-    function checkFirebaseConfig() {
-        if (firebaseConfig.apiKey.startsWith("AIzaSy") === false) {
-            loginMessage.textContent = "錯誤：請在程式碼中貼上您的 Firebase 設定。";
-            loginBtn.disabled = true;
-            loginBtn.innerHTML = `<span>設定未完成</span>`;
-            loginBtn.classList.replace('bg-red-600', 'bg-gray-400');
-            return false;
-        }
-        return true;
-    }
-
-    // --- 主程式邏輯 ---
-    if (checkFirebaseConfig()) {
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         
-        initializeLoginScreen();
-        initializeNavigation(); 
+        const firebaseConfig = {
+          apiKey: "AIzaSyDr9Bk0x0MiauuO_mzPOnLhYdhJ08pdxLo",
+          authDomain: "nwcom-check-in.firebaseapp.com",
+          projectId: "nwcom-check-in",
+          storageBucket: "nwcom-check-in.appspot.com",
+          messagingSenderId: "598559960060",
+          appId: "1:598559960060:web:197586299700c85a256079",
+          measurementId: "G-2WY1HVMD2S"
+        };
+
+        // --- DOM 元素 ---
+        const loginView = document.getElementById('login-view'), mainView = document.getElementById('main-view');
+        const emailInput = document.getElementById('email'), passwordInput = document.getElementById('login-password');
+        const togglePasswordBtn = document.getElementById('toggle-password-btn'), rememberMeCheckbox = document.getElementById('remember-me');
+        const loginBtn = document.getElementById('login-btn'), loginMessage = document.getElementById('login-message');
+        const logoutBtn = document.getElementById('logout-btn'), userEmailDisplay = document.getElementById('user-email-display');
+        const forgotPasswordLink = document.getElementById('forgot-password-link');
+        const currentStatusEl = document.getElementById('current-status'), workDurationEl = document.getElementById('work-duration');
+        const clockInBtn = document.getElementById('clock-in-btn'), clockOutBtn = document.getElementById('clock-out-btn');
+        const historyLogEl = document.getElementById('history-log');
+        const messageBoxEl = document.getElementById('message-box'), messageContentEl = document.getElementById('message-content');
+        const statusCardEl = document.getElementById('status-card');
+        const mapContainer = document.getElementById('map');
+        const relocateBtn = document.getElementById('relocate-btn');
         
-        onAuthStateChanged(auth, user => {
-            if (user) {
-                loginView.classList.add('hidden');
-                mainView.classList.remove('hidden');
-                mainView.classList.add('flex');
-                userEmailDisplay.textContent = `歡迎, ${user.email}`;
-                listenToTodayRecords(user.uid);
-                startLocationWatcher();
-                showPage('dashboard');
-            } else {
-                loginView.classList.remove('hidden');
-                loginView.classList.remove('flex-1', 'overflow-y-auto');
-                mainView.classList.add('hidden');
-                mainView.classList.remove('flex');
-                if (unsubscribeFromHistory) unsubscribeFromHistory();
-                if (workDurationInterval) clearInterval(workDurationInterval);
-                stopLocationWatcher();
-                clearMainView();
-            }
-        });
+        // --- 頁面與導覽按鈕 ---
+        const dashboardPage = document.getElementById('dashboard-page');
+        const checkinPage = document.getElementById('checkin-page');
+        const navDashboardBtn = document.getElementById('nav-dashboard-btn');
+        const navCheckinBtn = document.getElementById('nav-checkin-btn');
+
+        const eyeIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+        const eyeOffIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" x2="22" y1="2" y2="22"></line></svg>`;
         
-        // --- 頁面切換與互動邏輯 ---
-        function initializeNavigation() {
-            navDashboardBtn.addEventListener('click', () => showPage('dashboard'));
-            navCheckinBtn.addEventListener('click', () => showPage('checkin'));
-            relocateBtn.addEventListener('click', forceRelocate);
-        }
+        let workDurationInterval = null, unsubscribeFromHistory = null;
+        let map = null, marker = null, currentPosition = null, locationWatcherId = null;
 
-        function setActiveTab(activeBtn) {
-            const baseClasses = 'flex-1 p-3 text-center text-gray-500 flex flex-col items-center justify-center space-y-1 transition-colors duration-200';
-            navDashboardBtn.className = baseClasses;
-            navCheckinBtn.className = baseClasses;
-
-            activeBtn.classList.remove('text-gray-500');
-            activeBtn.classList.add('text-red-600', 'bg-red-50');
-        }
-
-        function showPage(pageName) {
-            if (pageName === 'dashboard') {
-                dashboardPage.classList.remove('hidden');
-                checkinPage.classList.add('hidden');
-                setActiveTab(navDashboardBtn);
-            } else if (pageName === 'checkin') {
-                dashboardPage.classList.add('hidden');
-                checkinPage.classList.remove('hidden');
-                setActiveTab(navCheckinBtn);
-                if (map) {
-                    setTimeout(() => map.invalidateSize(), 10);
-                }
+        // --- Firebase 設定檢查 ---
+        function checkFirebaseConfig() {
+            if (firebaseConfig.apiKey.startsWith("AIzaSy") === false) {
+                loginMessage.textContent = "錯誤：請在程式碼中貼上您的 Firebase 設定。";
+                loginBtn.disabled = true;
+                loginBtn.innerHTML = `<span>設定未完成</span>`;
+                loginBtn.classList.replace('bg-red-600', 'bg-gray-400');
+                return false;
             }
+            return true;
         }
 
-        function forceRelocate() {
-            if (!navigator.geolocation) {
-                showMessage('您的瀏覽器不支援 GPS 定位。', 'error');
-                return;
-            }
-
-            relocateBtn.disabled = true;
-            relocateBtn.innerHTML = `<div class="spinner-gray"></div><span class="text-xs">定位中</span>`;
+        // --- 主程式邏輯 ---
+        if (checkFirebaseConfig()) {
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+            const auth = getAuth(app);
             
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    currentPosition = pos;
-                    const { latitude, longitude } = pos.coords;
-                    const latLng = L.latLng(latitude, longitude);
-
-                    if (!map) {
-                        initMap(latLng);
-                    } else {
-                        map.setView(latLng, 17);
-                        marker.setLatLng(latLng);
-                    }
-                    showMessage('位置已更新！', 'success');
-                },
-                (error) => {
-                    let message = '無法取得 GPS 位置。';
-                    if (error.code === error.PERMISSION_DENIED) {
-                        message = '您已拒絕 GPS 定位權限。';
-                    }
-                    showMessage(message, 'error');
-                    mapContainer.innerHTML = `<div class="p-4 text-center">${message}</div>`;
-                    currentPosition = null;
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            ).finally(() => {
-                relocateBtn.disabled = false;
-                relocateBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span>重新定位</span>`;
-            });
-        }
-
-        // --- 登入/登出相關 ---
-        function initializeLoginScreen() {
-            const savedEmail = localStorage.getItem('rememberedEmail');
-            if (savedEmail) {
-                emailInput.value = savedEmail;
-                rememberMeCheckbox.checked = true;
-            }
-            togglePasswordBtn.innerHTML = eyeIcon;
-        }
-
-        loginBtn.addEventListener('click', async () => {
-            const email = emailInput.value;
-            const password = passwordInput.value;
-            loginMessage.textContent = '';
-            if (rememberMeCheckbox.checked) {
-                localStorage.setItem('rememberedEmail', email);
-            } else {
-                localStorage.removeItem('rememberedEmail');
-            }
-            toggleButtonLoading(loginBtn, true, '登入中...');
-            try {
-                if (email === '11' && password === '11') {
-                    await signInWithEmailAndPassword(auth, 'test@company.com', 'password123');
+            initializeLoginScreen();
+            initializeNavigation(); 
+            
+            onAuthStateChanged(auth, user => {
+                if (user) {
+                    loginView.classList.add('hidden');
+                    mainView.classList.remove('hidden');
+                    mainView.classList.add('flex');
+                    userEmailDisplay.textContent = `歡迎, ${user.email}`;
+                    listenToTodayRecords(user.uid);
+                    startLocationWatcher();
+                    showPage('dashboard');
                 } else {
-                    await signInWithEmailAndPassword(auth, email, password);
+                    loginView.classList.remove('hidden');
+                    loginView.classList.remove('flex-1', 'overflow-y-auto');
+                    mainView.classList.add('hidden');
+                    mainView.classList.remove('flex');
+                    if (unsubscribeFromHistory) unsubscribeFromHistory();
+                    if (workDurationInterval) clearInterval(workDurationInterval);
+                    stopLocationWatcher();
+                    clearMainView();
                 }
-            } catch (error) {
-                console.error("Login failed:", error);
-                const message = (error.code === 'auth/invalid-credential') 
-                    ? '登入失敗，帳號或密碼錯誤。' 
-                    : '登入時發生未知錯誤。';
-                loginMessage.textContent = message;
-            } finally {
-                toggleButtonLoading(loginBtn, false, '登入');
-            }
-        });
-        
-        logoutBtn.addEventListener('click', () => signOut(auth));
-
-        togglePasswordBtn.addEventListener('click', () => {
-            const isPassword = passwordInput.type === 'password';
-            passwordInput.type = isPassword ? 'text' : 'password';
-            togglePasswordBtn.innerHTML = isPassword ? eyeOffIcon : eyeIcon;
-        });
-
-        forgotPasswordLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            const email = emailInput.value;
-            if (!email) {
-                loginMessage.textContent = '請先輸入您的電子郵件以重設密碼。';
-                return;
-            }
-            sendPasswordResetEmail(auth, email)
-                .then(() => {
-                    loginMessage.textContent = `密碼重設信件已寄至 ${email}，請查收。`;
-                    loginMessage.className = "text-green-600 text-sm text-center min-h-[20px]";
-                })
-                .catch((error) => {
-                    loginMessage.textContent = '無法傳送密碼重設信件，請確認郵件地址是否正確。';
-                     loginMessage.className = "text-red-500 text-sm text-center min-h-[20px]";
-                });
-        });
-
-        // --- 地圖與定位邏輯 ---
-        function startLocationWatcher() {
-            if (locationWatcherId) return;
-            if (!navigator.geolocation) {
-                mapContainer.innerHTML = '您的瀏覽器不支援 GPS 定位。';
-                return;
-            }
-            
-            locationWatcherId = navigator.geolocation.watchPosition(
-                (pos) => {
-                    currentPosition = pos;
-                    const { latitude, longitude } = pos.coords;
-                    const latLng = L.latLng(latitude, longitude);
-
-                    if (!map) { 
-                        initMap(latLng);
-                    } else { 
-                        map.setView(latLng, 17);
-                        marker.setLatLng(latLng);
-                    }
-                },
-                (error) => {
-                    console.error("Geolocation error:", error);
-                    let message = '無法取得 GPS 位置。';
-                    if(error.code === error.PERMISSION_DENIED) {
-                        message = '您已拒絕 GPS 定位權限，請至瀏覽器設定中重新開啟。';
-                    }
-                    mapContainer.innerHTML = `<div class="p-4 text-center">${message}</div>`;
-                    currentPosition = null;
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-        }
-
-        function stopLocationWatcher() {
-            if (locationWatcherId) {
-                navigator.geolocation.clearWatch(locationWatcherId);
-            }
-            if (map) {
-                map.remove();
-                map = null;
-            }
-            locationWatcherId = null;
-            currentPosition = null;
-            marker = null;
-            mapContainer.innerHTML = '正在取得 GPS 定位...';
-        }
-
-        function initMap(latLng) {
-            mapContainer.innerHTML = ''; 
-            map = L.map('map').setView(latLng, 17);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            }).addTo(map);
-            marker = L.marker(latLng).addTo(map);
-        }
-
-        // --- 打卡邏輯 ---
-        async function handleClockAction(type) {
-            const user = auth.currentUser;
-            if (!user) {
-                showMessage('使用者未登入，無法打卡。', 'error');
-                return;
-            }
-            if (!currentPosition) {
-                showMessage('無法取得您的目前位置，請檢查定位權限後再試。', 'error');
-                return;
-            }
-
-            const buttonToLoad = type === 'in' ? clockInBtn : clockOutBtn;
-            const originalText = type === 'in' ? '上班打卡' : '下班打卡';
-            toggleButtonLoading(buttonToLoad, true, '傳送中...');
-            
-            try {
-                const { latitude, longitude } = currentPosition.coords;
-                const record = {
-                    userId: user.uid, userEmail: user.email, type,
-                    timestamp: serverTimestamp(),
-                    coords: { latitude, longitude },
-                    mapLink: `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=18/${latitude}/${longitude}`,
-                };
-                await addDoc(collection(db, "clock_records"), record);
-                showMessage(`${originalText}成功！`, 'success');
-            } catch (error) {
-                showMessage('打卡失敗，同步資料時發生錯誤。', 'error');
-                console.error("Clock action error:", error);
-            } finally {
-                toggleButtonLoading(buttonToLoad, false, originalText);
-            }
-        }
-        
-        clockInBtn.addEventListener('click', () => handleClockAction('in'));
-        clockOutBtn.addEventListener('click', () => handleClockAction('out'));
-        
-        // --- 資料監聽與畫面渲染 ---
-        function listenToTodayRecords(userId) {
-            if (unsubscribeFromHistory) unsubscribeFromHistory();
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const q = query(
-                collection(db, "clock_records"),
-                where("userId", "==", userId),
-                where("timestamp", ">=", today),
-                orderBy("timestamp", "desc")
-            );
-            unsubscribeFromHistory = onSnapshot(q, (snapshot) => {
-                const history = snapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return { ...data, id: doc.id, timestamp: data.timestamp?.toDate() };
-                }).filter(item => item.timestamp);
-                
-                renderHistory(history);
-                updateUI(history);
-            }, (error) => {
-                console.error("讀取紀錄失敗: ", error);
-                renderError(error);
             });
-        }
-        
-        function updateUI(history) {
-            const lastAction = history[0];
-            const isClockedIn = lastAction && lastAction.type === 'in';
             
-            if (isClockedIn) {
-                currentStatusEl.textContent = '工作中';
-                statusCardEl.className = 'bg-green-50 rounded-lg p-5 mb-6 text-center border border-green-500 transition-all';
-                currentStatusEl.className = 'text-2xl font-bold text-green-600';
-            } else {
-                currentStatusEl.textContent = history.length > 0 ? '已下班' : '尚未打卡';
-                statusCardEl.className = 'bg-gray-50 rounded-lg p-5 mb-6 text-center border transition-all';
-                currentStatusEl.className = 'text-2xl font-bold text-gray-800';
+            // --- 頁面切換與互動邏輯 ---
+            function initializeNavigation() {
+                navDashboardBtn.addEventListener('click', () => showPage('dashboard'));
+                navCheckinBtn.addEventListener('click', () => showPage('checkin'));
+                relocateBtn.addEventListener('click', forceRelocate);
+            }
+
+            function setActiveTab(activeBtn) {
+                const baseClasses = 'flex-1 p-3 text-center text-gray-500 flex flex-col items-center justify-center space-y-1 transition-colors duration-200';
+                navDashboardBtn.className = baseClasses;
+                navCheckinBtn.className = baseClasses;
+
+                activeBtn.classList.remove('text-gray-500');
+                activeBtn.classList.add('text-red-600', 'bg-red-50');
+            }
+
+            function showPage(pageName) {
+                if (pageName === 'dashboard') {
+                    dashboardPage.classList.remove('hidden');
+                    checkinPage.classList.add('hidden');
+                    setActiveTab(navDashboardBtn);
+                } else if (pageName === 'checkin') {
+                    dashboardPage.classList.add('hidden');
+                    checkinPage.classList.remove('hidden');
+                    setActiveTab(navCheckinBtn);
+                    if (map) {
+                        setTimeout(() => map.invalidateSize(), 10);
+                    }
+                }
+            }
+
+            function forceRelocate() {
+                if (!navigator.geolocation) {
+                    showMessage('您的瀏覽器不支援 GPS 定位。', 'error');
+                    return;
+                }
+
+                relocateBtn.disabled = true;
+                relocateBtn.innerHTML = `<div class="spinner-gray"></div><span class="text-xs">定位中</span>`;
+                
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        currentPosition = pos;
+                        const { latitude, longitude } = pos.coords;
+                        const latLng = L.latLng(latitude, longitude);
+
+                        if (!map) {
+                            initMap(latLng);
+                        } else {
+                            map.setView(latLng, 17);
+                            marker.setLatLng(latLng);
+                        }
+                        showMessage('位置已更新！', 'success');
+                    },
+                    (error) => {
+                        let message = '無法取得 GPS 位置。';
+                        if (error.code === error.PERMISSION_DENIED) {
+                            message = '您已拒絕 GPS 定位權限。';
+                        }
+                        showMessage(message, 'error');
+                        mapContainer.innerHTML = `<div class="p-4 text-center">${message}</div>`;
+                        currentPosition = null;
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                ).finally(() => {
+                    relocateBtn.disabled = false;
+                    relocateBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span>重新定位</span>`;
+                });
+            }
+
+            // --- 登入/登出相關 ---
+            function initializeLoginScreen() {
+                const savedEmail = localStorage.getItem('rememberedEmail');
+                if (savedEmail) {
+                    emailInput.value = savedEmail;
+                    rememberMeCheckbox.checked = true;
+                }
+                togglePasswordBtn.innerHTML = eyeIcon;
+            }
+
+            loginBtn.addEventListener('click', async () => {
+                const email = emailInput.value;
+                const password = passwordInput.value;
+                loginMessage.textContent = '';
+                if (rememberMeCheckbox.checked) {
+                    localStorage.setItem('rememberedEmail', email);
+                } else {
+                    localStorage.removeItem('rememberedEmail');
+                }
+                toggleButtonLoading(loginBtn, true, '登入中...');
+                try {
+                    if (email === '11' && password === '11') {
+                        await signInWithEmailAndPassword(auth, 'test@company.com', 'password123');
+                    } else {
+                        await signInWithEmailAndPassword(auth, email, password);
+                    }
+                } catch (error) {
+                    console.error("Login failed:", error);
+                    const message = (error.code === 'auth/invalid-credential') 
+                        ? '登入失敗，帳號或密碼錯誤。' 
+                        : '登入時發生未知錯誤。';
+                    loginMessage.textContent = message;
+                } finally {
+                    toggleButtonLoading(loginBtn, false, '登入');
+                }
+            });
+            
+            logoutBtn.addEventListener('click', () => signOut(auth));
+
+            togglePasswordBtn.addEventListener('click', () => {
+                const isPassword = passwordInput.type === 'password';
+                passwordInput.type = isPassword ? 'text' : 'password';
+                togglePasswordBtn.innerHTML = isPassword ? eyeOffIcon : eyeIcon;
+            });
+
+            forgotPasswordLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                const email = emailInput.value;
+                if (!email) {
+                    loginMessage.textContent = '請先輸入您的電子郵件以重設密碼。';
+                    return;
+                }
+                sendPasswordResetEmail(auth, email)
+                    .then(() => {
+                        loginMessage.textContent = `密碼重設信件已寄至 ${email}，請查收。`;
+                        loginMessage.className = "text-green-600 text-sm text-center min-h-[20px]";
+                    })
+                    .catch((error) => {
+                        loginMessage.textContent = '無法傳送密碼重設信件，請確認郵件地址是否正確。';
+                         loginMessage.className = "text-red-500 text-sm text-center min-h-[20px]";
+                    });
+            });
+
+            // --- 地圖與定位邏輯 ---
+            function startLocationWatcher() {
+                if (locationWatcherId) return;
+                if (!navigator.geolocation) {
+                    mapContainer.innerHTML = '您的瀏覽器不支援 GPS 定位。';
+                    return;
+                }
+                
+                locationWatcherId = navigator.geolocation.watchPosition(
+                    (pos) => {
+                        currentPosition = pos;
+                        const { latitude, longitude } = pos.coords;
+                        const latLng = L.latLng(latitude, longitude);
+
+                        if (!map) { 
+                            initMap(latLng);
+                        } else { 
+                            map.setView(latLng, 17);
+                            marker.setLatLng(latLng);
+                        }
+                    },
+                    (error) => {
+                        console.error("Geolocation error:", error);
+                        let message = '無法取得 GPS 位置。';
+                        if(error.code === error.PERMISSION_DENIED) {
+                            message = '您已拒絕 GPS 定位權限，請至瀏覽器設定中重新開啟。';
+                        }
+                        mapContainer.innerHTML = `<div class="p-4 text-center">${message}</div>`;
+                        currentPosition = null;
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            }
+
+            function stopLocationWatcher() {
+                if (locationWatcherId) {
+                    navigator.geolocation.clearWatch(locationWatcherId);
+                }
+                if (map) {
+                    map.remove();
+                    map = null;
+                }
+                locationWatcherId = null;
+                currentPosition = null;
+                marker = null;
+                mapContainer.innerHTML = '正在取得 GPS 定位...';
+            }
+
+            function initMap(latLng) {
+                mapContainer.innerHTML = ''; 
+                map = L.map('map').setView(latLng, 17);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                }).addTo(map);
+                marker = L.marker(latLng).addTo(map);
+            }
+
+            // --- 打卡邏輯 ---
+            async function handleClockAction(type) {
+                const user = auth.currentUser;
+                if (!user) {
+                    showMessage('使用者未登入，無法打卡。', 'error');
+                    return;
+                }
+                if (!currentPosition) {
+                    showMessage('無法取得您的目前位置，請檢查定位權限後再試。', 'error');
+                    return;
+                }
+
+                const buttonToLoad = type === 'in' ? clockInBtn : clockOutBtn;
+                const originalText = type === 'in' ? '上班打卡' : '下班打卡';
+                toggleButtonLoading(buttonToLoad, true, '傳送中...');
+                
+                try {
+                    const { latitude, longitude } = currentPosition.coords;
+                    const record = {
+                        userId: user.uid, userEmail: user.email, type,
+                        timestamp: serverTimestamp(),
+                        coords: { latitude, longitude },
+                        mapLink: `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=18/${latitude}/${longitude}`,
+                    };
+                    await addDoc(collection(db, "clock_records"), record);
+                    showMessage(`${originalText}成功！`, 'success');
+                } catch (error) {
+                    showMessage('打卡失敗，同步資料時發生錯誤。', 'error');
+                    console.error("Clock action error:", error);
+                } finally {
+                    toggleButtonLoading(buttonToLoad, false, originalText);
+                }
             }
             
-            clockInBtn.disabled = isClockedIn;
-            clockOutBtn.disabled = !isClockedIn;
+            clockInBtn.addEventListener('click', () => handleClockAction('in'));
+            clockOutBtn.addEventListener('click', () => handleClockAction('out'));
             
-            if (workDurationInterval) clearInterval(workDurationInterval);
-            const calculateAndRenderDuration = () => {
-                const duration = calculateWorkDuration(history, isClockedIn);
-                workDurationEl.textContent = `${duration.hours} 小時 ${duration.minutes} 分`;
-            };
-            calculateAndRenderDuration();
-            if(isClockedIn) {
-                 workDurationInterval = setInterval(calculateAndRenderDuration, 60000);
+            // --- 資料監聽與畫面渲染 ---
+            function listenToTodayRecords(userId) {
+                if (unsubscribeFromHistory) unsubscribeFromHistory();
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const q = query(
+                    collection(db, "clock_records"),
+                    where("userId", "==", userId),
+                    where("timestamp", ">=", today),
+                    orderBy("timestamp", "desc")
+                );
+                unsubscribeFromHistory = onSnapshot(q, (snapshot) => {
+                    const history = snapshot.docs.map(doc => {
+                        const data = doc.data();
+                        return { ...data, id: doc.id, timestamp: data.timestamp?.toDate() };
+                    }).filter(item => item.timestamp);
+                    
+                    renderHistory(history);
+                    updateUI(history);
+                }, (error) => {
+                    console.error("讀取紀錄失敗: ", error);
+                    renderError(error);
+                });
             }
-        }
-        
-        function renderHistory(history) {
-            historyLogEl.innerHTML = '';
-            if (history.length === 0) {
-                historyLogEl.innerHTML = `<p class="text-gray-500 text-center py-4">今日尚無紀錄</p>`;
-            } else {
-                history.forEach(item => {
-                    const typeText = item.type === 'in' ? '上班' : '下班';
-                    const typeColor = item.type === 'in' ? 'text-green-600' : 'text-red-600';
-                    const logItem = document.createElement('div');
-                    logItem.className = 'bg-gray-50 p-3 rounded-lg border flex justify-between items-center';
-                    logItem.innerHTML = `
+            
+            function updateUI(history) {
+                const lastAction = history[0];
+                const isClockedIn = lastAction && lastAction.type === 'in';
+                
+                if (isClockedIn) {
+                    currentStatusEl.textContent = '工作中';
+                    statusCardEl.className = 'bg-green-50 rounded-lg p-5 mb-6 text-center border border-green-500 transition-all';
+                    currentStatusEl.className = 'text-2xl font-bold text-green-600';
+                } else {
+                    currentStatusEl.textContent = history.length > 0 ? '已下班' : '尚未打卡';
+                    statusCardEl.className = 'bg-gray-50 rounded-lg p-5 mb-6 text-center border transition-all';
+                    currentStatusEl.className = 'text-2xl font-bold text-gray-800';
+                }
+                
+                clockInBtn.disabled = isClockedIn;
+                clockOutBtn.disabled = !isClockedIn;
+                
+                if (workDurationInterval) clearInterval(workDurationInterval);
+                const calculateAndRenderDuration = () => {
+                    const duration = calculateWorkDuration(history, isClockedIn);
+                    workDurationEl.textContent = `${duration.hours} 小時 ${duration.minutes} 分`;
+                };
+                calculateAndRenderDuration();
+                if(isClockedIn) {
+                     workDurationInterval = setInterval(calculateAndRenderDuration, 60000);
+                }
+            }
+            
+            function renderHistory(history) {
+                historyLogEl.innerHTML = '';
+                if (history.length === 0) {
+                    historyLogEl.innerHTML = `<p class="text-gray-500 text-center py-4">今日尚無紀錄</p>`;
+                } else {
+                    history.forEach(item => {
+                        const typeText = item.type === 'in' ? '上班' : '下班';
+                        const typeColor = item.type === 'in' ? 'text-green-600' : 'text-red-600';
+                        const logItem = document.createElement('div');
+                        logItem.className = 'bg-gray-50 p-3 rounded-lg border flex justify-between items-center';
+                        logItem.innerHTML = `
                         <div>
                             <p class="font-semibold"><span class="${typeColor} font-bold">${typeText}</span></p>
                             <p class="text-sm text-gray-600">${item.timestamp.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}</p>
