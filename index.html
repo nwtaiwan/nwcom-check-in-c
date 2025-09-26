@@ -731,6 +731,7 @@
                 mapModal.classList.remove('hidden');
                 const latLng = L.latLng(lat, lon);
 
+                // Delay map initialization/update to ensure modal is visible and sized
                 setTimeout(() => {
                     if (!recordMap) {
                         recordMap = L.map('record-map').setView(latLng, 17);
@@ -743,16 +744,14 @@
                         recordMap.setView(latLng, 17);
                         recordMapMarker.setLatLng(latLng);
                     }
+                    // This is crucial to fix map rendering issues in a modal
                     recordMap.invalidateSize();
-                }, 10);
+                }, 100); // Increased timeout for robustness
             }
 
             function closeMapModal() {
                 mapModal.classList.add('hidden');
-                if (recordMap) {
-                    recordMap.remove();
-                    recordMap = null;
-                }
+                // By not removing the map, we can reuse the instance, which is more efficient.
             }
 
 
