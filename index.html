@@ -193,7 +193,7 @@
             <!-- 底部導覽列 -->
             <nav id="bottom-nav" class="w-full border-t bg-gray-50">
                 <div class="flex justify-around">
-                    <button id="nav-settings-btn" class="flex-1 p-3 text-center text-gray-500 flex flex-col items-center justify-center space-y-1 transition-colors duration-200">
+                    <button id="nav-settings-btn" class="hidden flex-1 p-3 text-center text-gray-500 flex flex-col items-center justify-center space-y-1 transition-colors duration-200">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                         <span class="text-xs font-medium">設定</span>
                     </button>
@@ -301,7 +301,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, where, onSnapshot, serverTimestamp, orderBy, doc, updateDoc, arrayUnion, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, serverTimestamp, orderBy, doc, updateDoc, arrayUnion, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
         
@@ -369,6 +369,7 @@
         let workDurationInterval = null, unsubscribeFromHistory = null, unsubscribeFromAccounts = null;
         let map = null, marker = null, currentPosition = null;
         let cameraStream = null;
+        let currentUserRole = null;
 
         // --- Firebase 設定檢查 ---
         function checkFirebaseConfig() {
@@ -381,6 +382,26 @@
             }
             return true;
         }
+        
+        // --- 權限管理 ---
+        async function checkUserRole(userId) {
+            try {
+                const userDocRef = doc(db, "users", userId);
+                const userDocSnap = await getDoc(userDocRef);
+
+                if (userDocSnap.exists() && userDocSnap.data().role === '管理員') {
+                    currentUserRole = '管理員';
+                    navSettingsBtn.classList.remove('hidden'); // 顯示設定分頁
+                } else {
+                    currentUserRole = '員工';
+                    navSettingsBtn.classList.add('hidden'); // 隱藏設定分頁
+                }
+            } catch (error) {
+                console.error("檢查使用者權限時發生錯誤:", error);
+                currentUserRole = '員工'; // 發生錯誤時預設為一般員工
+                navSettingsBtn.classList.add('hidden');
+            }
+        }
 
         // --- 主程式邏輯 ---
         if (checkFirebaseConfig()) {
@@ -392,8 +413,9 @@
             initializeLoginScreen();
             initializeNavigation(); 
             
-            onAuthStateChanged(auth, user => {
+            onAuthStateChanged(auth, async (user) => {
                 if (user) {
+                    await checkUserRole(user.uid); // 登入後檢查權限
                     document.body.classList.remove('bg-red-600');
                     document.body.classList.add('bg-gray-100');
                     loginView.classList.add('hidden');
@@ -404,6 +426,8 @@
                     getInitialLocation();
                     showPage('dashboard');
                 } else {
+                    currentUserRole = null; // 登出後清除權限
+                    navSettingsBtn.classList.add('hidden'); // 登出後隱藏設定分頁
                     document.body.classList.add('bg-red-600');
                     document.body.classList.remove('bg-gray-100');
                     loginView.classList.remove('hidden');
@@ -437,7 +461,10 @@
 
             function setActiveTab(activeBtn) {
                 const baseClasses = 'flex-1 p-3 text-center text-gray-500 flex flex-col items-center justify-center space-y-1 transition-colors duration-200';
-                navSettingsBtn.className = baseClasses;
+                navSettingsBtn.className = `${baseClasses} hidden`; // Keep hidden by default
+                 if (currentUserRole === '管理員') {
+                    navSettingsBtn.classList.remove('hidden');
+                }
                 navDashboardBtn.className = baseClasses;
                 navCheckinBtn.className = baseClasses;
                 activeBtn.classList.remove('text-gray-500');
@@ -459,6 +486,7 @@
                         setTimeout(() => map.invalidateSize(), 10);
                     }
                 } else if (pageName === 'settings') {
+                    if (currentUserRole !== '管理員') return; // 雙重保險
                     settingsPage.classList.remove('hidden');
                     setActiveTab(navSettingsBtn);
                     showSettingsTab('account'); // 預設顯示帳號分頁
@@ -813,7 +841,7 @@
                     renderAccountList(users);
                 }, (error) => {
                     console.error("Error listening to accounts:", error);
-                    accountList.innerHTML = `<p class="text-red-500 text-center py-4">無法載入帳號資料。</p>`;
+                    accountList.innerHTML = `<p class="text-red-500 text-center py-4">無法載入帳號資料。權限不足。</p>`;
                 });
             }
 
