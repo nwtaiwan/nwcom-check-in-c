@@ -7,9 +7,6 @@
     <link rel="icon" type="image/png" href="https://static.wixstatic.com/media/6148f9_56377cef73c1498f95a2c3057b89f2ed~mv2.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- Leaflet Map Library -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <style>
         body { font-family: 'Inter', 'Noto Sans TC', sans-serif; touch-action: manipulation; }
         .spinner {
@@ -31,7 +28,6 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        #map { height: 300px; } /* Increased map height for better view */
         #camera-modal, #add-account-modal, #map-modal { z-index: 1000; }
     </style>
 </head>
@@ -136,8 +132,9 @@
                                 <span>重新定位</span>
                             </button>
                         </h3>
-                        <div id="map" class="w-full rounded-lg bg-gray-200 flex items-center justify-center text-gray-500 overflow-hidden">
-                            正在取得 GPS 定位...
+                        <div id="map-wrapper" class="w-full h-[300px] rounded-lg bg-gray-200 flex items-center justify-center text-gray-500 overflow-hidden">
+                            <p id="map-loading-text">正在取得 GPS 定位...</p>
+                            <iframe id="current-location-iframe" class="hidden w-full h-full border-0"></iframe>
                         </div>
                     </div>
                     <!-- 打卡按鈕區 -->
@@ -253,7 +250,7 @@
                 </button>
             </header>
             <main class="flex-1 bg-gray-200">
-                <div id="record-map" class="w-full h-full"></div>
+                <iframe id="map-iframe" class="w-full h-full border-0" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src=""></iframe>
             </main>
         </div>
     </div>
@@ -342,7 +339,9 @@
         const historyLogEl = document.getElementById('history-log');
         const messageBoxEl = document.getElementById('message-box'), messageContentEl = document.getElementById('message-content');
         const statusCardEl = document.getElementById('status-card');
-        const mapContainer = document.getElementById('map');
+        const mapWrapper = document.getElementById('map-wrapper');
+        const mapLoadingText = document.getElementById('map-loading-text');
+        const currentLocationIframe = document.getElementById('current-location-iframe');
         const relocateBtn = document.getElementById('relocate-btn');
         
         // --- 頁面與導覽按鈕 ---
@@ -381,15 +380,15 @@
         // --- 地圖 Modal 元素 ---
         const mapModal = document.getElementById('map-modal');
         const closeMapModalBtn = document.getElementById('close-map-modal-btn');
+        const mapIframe = document.getElementById('map-iframe');
 
         const eyeIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
         const eyeOffIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" x2="22" y1="2" y2="22"></line></svg>`;
         
         let workDurationInterval = null, unsubscribeFromHistory = null, unsubscribeFromAccounts = null;
-        let map = null, marker = null, currentPosition = null;
+        let currentPosition = null;
         let cameraStream = null;
         let currentUserRole = null;
-        let recordMap = null, recordMapMarker = null;
 
         // --- Firebase 設定檢查 ---
         function checkFirebaseConfig() {
@@ -433,7 +432,6 @@
                 if (user) {
                     await checkUserRole(user.uid);
                     
-                    // Always make settings visible for all users as requested
                     navSettingsBtn.classList.remove('hidden');
 
                     document.body.classList.remove('bg-red-600');
@@ -446,8 +444,8 @@
                     getInitialLocation();
                     showPage('dashboard');
                 } else {
-                    currentUserRole = null; // 登出後清除權限
-                    navSettingsBtn.classList.add('hidden'); // Ensure hidden on logout
+                    currentUserRole = null;
+                    navSettingsBtn.classList.add('hidden');
                     document.body.classList.add('bg-red-600');
                     document.body.classList.remove('bg-gray-100');
                     loginView.classList.remove('hidden');
@@ -494,14 +492,10 @@
 
             function setActiveTab(activeBtn) {
                 const allButtons = [navDashboardBtn, navCheckinBtn, navSettingsBtn];
-                
-                // 1. Reset all buttons to the inactive state
                 allButtons.forEach(btn => {
                     btn.classList.remove('text-red-600', 'bg-red-50');
                     btn.classList.add('text-gray-500');
                 });
-                
-                // 2. Highlight the currently active button
                 activeBtn.classList.remove('text-gray-500');
                 activeBtn.classList.add('text-red-600', 'bg-red-50');
             }
@@ -517,14 +511,11 @@
                 } else if (pageName === 'checkin') {
                     checkinPage.classList.remove('hidden');
                     setActiveTab(navCheckinBtn);
-                    if (map) {
-                        setTimeout(() => map.invalidateSize(), 10);
-                    }
                 } else if (pageName === 'settings') {
                     settingsPage.classList.remove('hidden');
                     setActiveTab(navSettingsBtn);
-                    showSettingsTab('account'); // 預設顯示帳號分頁
-                    listenToAccounts(); // 進入設定頁時開始監聽
+                    showSettingsTab('account');
+                    listenToAccounts();
                 }
             }
             
@@ -561,12 +552,7 @@
                     (pos) => {
                         currentPosition = pos;
                         const { latitude, longitude } = pos.coords;
-                        const latLng = L.latLng(latitude, longitude);
-                        if (!map) initMap(latLng);
-                        else {
-                            map.setView(latLng, 17);
-                            marker.setLatLng(latLng);
-                        }
+                        updateCurrentLocationMap(latitude, longitude);
                         showMessage('位置已更新！', 'success');
                         resetRelocateBtn();
                     },
@@ -574,7 +560,9 @@
                         let message = '無法取得 GPS 位置。';
                         if (error.code === error.PERMISSION_DENIED) message = '您已拒絕 GPS 定位權限。';
                         showMessage(message, 'error');
-                        mapContainer.innerHTML = `<div class="p-4 text-center">${message}</div>`;
+                        mapLoadingText.textContent = message;
+                        mapLoadingText.classList.remove('hidden');
+                        currentLocationIframe.classList.add('hidden');
                         currentPosition = null;
                         resetRelocateBtn();
                     },
@@ -638,47 +626,52 @@
             // --- 地圖與定位邏輯 ---
             function getInitialLocation() {
                 if (!navigator.geolocation) {
-                    mapContainer.innerHTML = '您的瀏覽器不支援 GPS 定位。';
+                    mapLoadingText.textContent = '您的瀏覽器不支援 GPS 定位。';
                     return;
                 }
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
                         currentPosition = pos;
                         const { latitude, longitude } = pos.coords;
-                        const latLng = L.latLng(latitude, longitude);
-                        if (!map) initMap(latLng);
-                        else {
-                            map.setView(latLng, 17);
-                            marker.setLatLng(latLng);
-                        }
+                        updateCurrentLocationMap(latitude, longitude);
                     },
                     (error) => {
                         console.error("Geolocation error:", error);
                         let message = '無法取得 GPS 位置。';
                         if(error.code === error.PERMISSION_DENIED) message = '您已拒絕 GPS 定位權限，請至瀏覽器設定中重新開啟。';
-                        mapContainer.innerHTML = `<div class="p-4 text-center">${message}</div>`;
+                        mapLoadingText.textContent = message;
+                        mapLoadingText.classList.remove('hidden');
+                        currentLocationIframe.classList.add('hidden');
                         currentPosition = null;
                     },
                     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                 );
             }
-            function cleanupLocationOnLogout() {
-                if (map) {
-                    map.remove();
-                    map = null;
-                }
-                currentPosition = null;
-                marker = null;
-                mapContainer.innerHTML = '正在取得 GPS 定位...';
+
+            function updateCurrentLocationMap(lat, lon) {
+                const mapUrl = `https://maps.google.com/maps?q=${lat},${lon}&z=17&output=embed`;
+                currentLocationIframe.src = mapUrl;
+                mapLoadingText.classList.add('hidden');
+                currentLocationIframe.classList.remove('hidden');
             }
-            function initMap(latLng) {
-                mapContainer.innerHTML = ''; 
-                map = L.map('map').setView(latLng, 17);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                }).addTo(map);
-                marker = L.marker(latLng).addTo(map);
+
+            function cleanupLocationOnLogout() {
+                currentPosition = null;
+                currentLocationIframe.src = '';
+                mapLoadingText.textContent = '正在取得 GPS 定位...';
+                mapLoadingText.classList.remove('hidden');
+                currentLocationIframe.classList.add('hidden');
+            }
+
+            function showMapModal(lat, lon) {
+                const mapUrl = `https://maps.google.com/maps?q=${lat},${lon}&z=17&output=embed`;
+                mapIframe.src = mapUrl;
+                mapModal.classList.remove('hidden');
+            }
+
+            function closeMapModal() {
+                mapModal.classList.add('hidden');
+                mapIframe.src = ''; // 清除 src 以停止地圖載入，節省資源
             }
 
             // --- 打卡與相機邏輯 ---
@@ -726,38 +719,6 @@
                     closeCameraModal();
                 }
             }
-
-            function showMapModal(lat, lon) {
-                mapModal.classList.remove('hidden');
-                const latLng = L.latLng(lat, lon);
-
-                // Check if the map is already initialized
-                if (!recordMap) {
-                    // Initialize the map for the first time
-                    recordMap = L.map('record-map').setView(latLng, 17);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        maxZoom: 19,
-                        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    }).addTo(recordMap);
-                    recordMapMarker = L.marker(latLng).addTo(recordMap);
-                } else {
-                    // If map already exists, just update its view and marker
-                    recordMap.setView(latLng, 17);
-                    recordMapMarker.setLatLng(latLng);
-                }
-
-                // IMPORTANT: Use a short timeout to ensure the modal is fully rendered
-                // before telling the map to resize. This is the key to fixing the gray map issue.
-                setTimeout(function() {
-                    recordMap.invalidateSize();
-                }, 10);
-            }
-
-            function closeMapModal() {
-                mapModal.classList.add('hidden');
-                // By not removing the map, we can reuse the instance, which is more efficient.
-            }
-
 
             async function takePhotoWithWatermark() {
                 const video = videoElement;
@@ -873,13 +834,9 @@
                 };
 
                 try {
-                    // 步驟 1: 在 Firebase Authentication 建立使用者
                     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                     const user = userCredential.user;
-
-                    // 步驟 2: 使用者的 UID 作為文件 ID，將設定檔存儲在 Firestore 中
                     await setDoc(doc(db, "users", user.uid), userData);
-
                     showMessage(`帳號 ${userData.name} 已成功建立。`, 'success');
                     closeAddAccountModal();
                 } catch (error) {
@@ -897,10 +854,8 @@
             }
 
             function listenToAccounts() {
-                if (unsubscribeFromAccounts) unsubscribeFromAccounts(); // 取消先前的監聽
-                
+                if (unsubscribeFromAccounts) unsubscribeFromAccounts();
                 const q = query(collection(db, "users"), orderBy("createdAt", "desc"));
-                
                 unsubscribeFromAccounts = onSnapshot(q, (snapshot) => {
                     const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     renderAccountList(users);
@@ -916,23 +871,17 @@
                     accountList.innerHTML = `<p class="text-gray-500 text-center py-4">尚無帳號資料</p>`;
                     return;
                 }
-
                 users.forEach(user => {
                     const userCard = document.createElement('div');
                     userCard.className = 'bg-white p-4 rounded-lg border flex justify-between items-center';
-                    
                     const roleColor = user.role === '管理員' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800';
-
                     userCard.innerHTML = `
                         <div>
                             <p class="font-bold text-gray-800">${user.name} <span class="text-sm font-medium ml-2 px-2 py-0.5 rounded-full ${roleColor}">${user.role}</span></p>
                             <p class="text-sm text-gray-600">${user.email}</p>
                             <p class="text-sm text-gray-500">${user.title || '無職稱'}</p>
                         </div>
-                        <div>
-                           <!-- 未來可放編輯/刪除按鈕 -->
-                        </div>
-                    `;
+                        <div></div>`;
                     accountList.appendChild(userCard);
                 });
             }
