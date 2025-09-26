@@ -210,6 +210,19 @@
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
         
+        /*
+         * [Firebase 登入錯誤修正]
+         * 錯誤訊息 "auth/requests-from-referer...-are-blocked" 表示您目前的網域未被授權。
+         *
+         * 請依照以下步驟解決：
+         * 1. 前往您的 Firebase 專案控制台。
+         * 2. 點擊左側選單的「Authentication」。
+         * 3. 選擇「Settings」分頁。
+         * 4. 在「已授權的網域 (Authorized domains)」區塊，點擊「新增網域 (Add domain)」。
+         * 5. 將以下網域複製並貼上：
+         * 5gtug96rgjf6alk3rozmtp83jrjefduxhkxsp36145yg5tcb3t-h807678934.scf.usercontent.goog
+         * 6. 點擊「新增」後，您的應用程式應該就能正常登入了。
+         */
         const firebaseConfig = {
           apiKey: "AIzaSyDr9Bk0x0MiauuO_mzPOnLhYdhJ08pdxLo",
           authDomain: "nwcom-check-in.firebaseapp.com",
@@ -515,7 +528,7 @@
             }
 
             async function takePhotoWithWatermark(auth, db, storage) {
-                if (videoElement.videoWidth === 0) {
+                if (videoElement.readyState < 3) { // Use readyState to check if video has enough data
                     showMessage('相機尚未準備完成，請稍候。', 'error');
                     return;
                 }
@@ -565,7 +578,6 @@
                     
                     const dataUrl = canvas.toDataURL('image/jpeg');
                     
-                    // --- Upload photo and update record ---
                     const photoName = `${Date.now()}.jpg`;
                     const storageRef = ref(storage, `photos/${user.uid}/${recordId}/${photoName}`);
                     const uploadResult = await uploadString(storageRef, dataUrl, 'data_url');
@@ -580,7 +592,7 @@
                     img.src = dataUrl;
                     img.className = 'w-full h-auto object-cover rounded';
                     photoPreviewContainer.appendChild(img);
-                    photoDescriptionInput.value = ''; // Clear description after photo is taken
+                    photoDescriptionInput.value = '';
                     showMessage('照片已上傳！', 'success');
 
                 } catch (error) {
@@ -721,7 +733,7 @@
                 }
             }
 
-            function toggleButtonLoading(button, isLoading, loadingText) {
+            function toggleButtonLoading(button, isLoading, loadingText = '') {
                 if (isLoading) {
                     button.dataset.originalHtml = button.innerHTML;
                     button.disabled = true;
