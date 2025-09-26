@@ -731,22 +731,26 @@
                 mapModal.classList.remove('hidden');
                 const latLng = L.latLng(lat, lon);
 
-                // Delay map initialization/update to ensure modal is visible and sized
-                setTimeout(() => {
-                    if (!recordMap) {
-                        recordMap = L.map('record-map').setView(latLng, 17);
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                            maxZoom: 19,
-                            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                        }).addTo(recordMap);
-                        recordMapMarker = L.marker(latLng).addTo(recordMap);
-                    } else {
-                        recordMap.setView(latLng, 17);
-                        recordMapMarker.setLatLng(latLng);
-                    }
-                    // This is crucial to fix map rendering issues in a modal
+                // Check if the map is already initialized
+                if (!recordMap) {
+                    // Initialize the map for the first time
+                    recordMap = L.map('record-map').setView(latLng, 17);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    }).addTo(recordMap);
+                    recordMapMarker = L.marker(latLng).addTo(recordMap);
+                } else {
+                    // If map already exists, just update its view and marker
+                    recordMap.setView(latLng, 17);
+                    recordMapMarker.setLatLng(latLng);
+                }
+
+                // IMPORTANT: Use a short timeout to ensure the modal is fully rendered
+                // before telling the map to resize. This is the key to fixing the gray map issue.
+                setTimeout(function() {
                     recordMap.invalidateSize();
-                }, 100); // Increased timeout for robustness
+                }, 10);
             }
 
             function closeMapModal() {
