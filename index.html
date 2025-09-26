@@ -41,7 +41,7 @@
         
         <!-- 登入畫面 -->
         <div id="login-view" class="flex-1 overflow-y-auto">
-            <header class="bg-white p-6 text-center border-b">
+            <header class="bg-white p-6 text-center">
                 <img src="https://static.wixstatic.com/media/6148f9_56377cef73c1498f95a2c3057b89f2ed~mv2.png" alt="西北保全 Logo" class="mx-auto" style="width: 120px; height: 60px;">
                 <h1 class="text-xl font-bold text-red-600 mt-4">西北勤務打卡系統</h1>
             </header>
@@ -388,18 +388,14 @@
             try {
                 const userDocRef = doc(db, "users", userId);
                 const userDocSnap = await getDoc(userDocRef);
-
                 if (userDocSnap.exists() && userDocSnap.data().role === '管理員') {
                     currentUserRole = '管理員';
-                    navSettingsBtn.classList.remove('hidden'); // 顯示設定分頁
                 } else {
                     currentUserRole = '員工';
-                    navSettingsBtn.classList.add('hidden'); // 隱藏設定分頁
                 }
             } catch (error) {
                 console.error("檢查使用者權限時發生錯誤:", error);
                 currentUserRole = '員工'; // 發生錯誤時預設為一般員工
-                navSettingsBtn.classList.add('hidden');
             }
         }
 
@@ -427,7 +423,6 @@
                     showPage('dashboard');
                 } else {
                     currentUserRole = null; // 登出後清除權限
-                    navSettingsBtn.classList.add('hidden'); // 登出後隱藏設定分頁
                     document.body.classList.add('bg-red-600');
                     document.body.classList.remove('bg-gray-100');
                     loginView.classList.remove('hidden');
@@ -460,13 +455,20 @@
             }
 
             function setActiveTab(activeBtn) {
+                const allButtons = [navDashboardBtn, navCheckinBtn, navSettingsBtn];
                 const baseClasses = 'flex-1 p-3 text-center text-gray-500 flex flex-col items-center justify-center space-y-1 transition-colors duration-200';
-                navSettingsBtn.className = `${baseClasses} hidden`; // Keep hidden by default
-                 if (currentUserRole === '管理員') {
+
+                // Reset all buttons to their base, inactive style
+                allButtons.forEach(btn => btn.className = baseClasses);
+
+                // Set visibility based on role
+                if (currentUserRole === '管理員') {
                     navSettingsBtn.classList.remove('hidden');
+                } else {
+                    navSettingsBtn.classList.add('hidden');
                 }
-                navDashboardBtn.className = baseClasses;
-                navCheckinBtn.className = baseClasses;
+                
+                // Highlight the active button
                 activeBtn.classList.remove('text-gray-500');
                 activeBtn.classList.add('text-red-600', 'bg-red-50');
             }
