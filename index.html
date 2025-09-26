@@ -22,7 +22,7 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        #map { height: 250px; }
+        #map { height: 300px; } /* Increased map height for better view */
         .blinking-dot {
             height: 8px;
             width: 8px;
@@ -40,10 +40,10 @@
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
 
-    <div class="w-full max-w-md mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
+    <div class="w-full max-w-md mx-auto bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col h-screen max-h-[95vh]">
         
         <!-- 登入畫面 -->
-        <div id="login-view">
+        <div id="login-view" class="flex-1 overflow-y-auto">
             <header class="bg-white p-6 text-center border-b">
                 <img src="https://static.wixstatic.com/media/6148f9_56377cef73c1498f95a2c3057b89f2ed~mv2.png" alt="西北保全 Logo" class="mx-auto" style="width: 120px; height: 60px;">
                 <h1 class="text-xl font-bold text-red-600 mt-4">西北保全人員打卡系統</h1>
@@ -81,7 +81,7 @@
         </div>
 
         <!-- 主操作畫面 -->
-        <div id="main-view" class="hidden">
+        <div id="main-view" class="hidden flex-1 flex flex-col">
             <header class="bg-red-600 text-white p-6 flex justify-between items-center">
                 <div class="flex items-center space-x-3">
                     <img src="https://static.wixstatic.com/media/6148f9_56377cef73c1498f95a2c3057b89f2ed~mv2.png" alt="西北保全 Logo" style="width: 40px; height: 20px; object-fit: contain;">
@@ -96,59 +96,78 @@
                 </button>
             </header>
 
-            <main class="p-6 md:p-8">
-                <!-- 狀態顯示區 -->
-                <div id="status-card" class="bg-gray-50 rounded-lg p-5 mb-6 text-center border transition-all">
-                     <div class="flex justify-between items-center">
-                        <div class="text-left">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-1">目前狀態</h2>
-                            <p id="current-status" class="text-2xl font-bold text-gray-800">尚未打卡</p>
-                        </div>
-                        <div class="text-right">
-                             <h2 class="text-lg font-semibold text-gray-700 mb-1">今日工時</h2>
-                            <p id="work-duration" class="text-2xl font-bold text-gray-800">-- 小時 -- 分</p>
-                        </div>
-                     </div>
-                </div>
-
-                <!-- Map Display -->
-                <div class="mb-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-3 border-b pb-2 flex items-center space-x-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                        <span>目前位置</span>
-                        <span id="tracking-status" class="ml-2 hidden items-center">
-                            <span class="blinking-dot"></span>
-                            <span class="ml-1.5 text-sm font-normal text-gray-600">路徑追蹤中</span>
-                        </span>
-                    </h3>
-                    <div id="map" class="w-full rounded-lg bg-gray-200 flex items-center justify-center text-gray-500 overflow-hidden">
-                        正在取得 GPS 定位...
-                    </div>
-                </div>
-
-                <!-- 打卡按鈕區 -->
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <button id="clock-in-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-4 rounded-lg shadow-md transition-all duration-200 flex items-center justify-center space-x-2 disabled:bg-gray-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10.5V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h12.5"/><path d="m16 16-2 2 4 4 4-4-2-2"/><path d="M18 10V2"/></svg>
-                        <span>上班打卡</span>
-                    </button>
-                    <button id="clock-out-btn" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-4 rounded-lg shadow-md transition-all duration-200 flex items-center justify-center space-x-2 disabled:bg-gray-400" disabled>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 13.5V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h12.5"/><path d="m16 22 5-5-5-5"/><path d="M18 10V2"/></svg>
-                        <span>下班打卡</span>
-                    </button>
-                </div>
-                
+            <!-- 可滾動的內容區域 -->
+            <main class="flex-1 overflow-y-auto p-6 md:p-8">
                 <div id="message-box" class="hidden p-4 mb-4 text-sm rounded-lg" role="alert">
                     <span class="font-medium" id="message-content"></span>
                 </div>
 
-                <!-- 打卡紀錄 -->
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-800 mb-3 border-b pb-2">今日打卡紀錄</h3>
-                    <div id="history-log" class="space-y-3 max-h-48 overflow-y-auto pr-2">
+                <!-- 儀表板頁面 -->
+                <div id="dashboard-page">
+                    <!-- 狀態顯示區 -->
+                    <div id="status-card" class="bg-gray-50 rounded-lg p-5 mb-6 text-center border transition-all">
+                         <div class="flex justify-between items-center">
+                            <div class="text-left">
+                                <h2 class="text-lg font-semibold text-gray-700 mb-1">目前狀態</h2>
+                                <p id="current-status" class="text-2xl font-bold text-gray-800">尚未打卡</p>
+                            </div>
+                            <div class="text-right">
+                                 <h2 class="text-lg font-semibold text-gray-700 mb-1">今日工時</h2>
+                                <p id="work-duration" class="text-2xl font-bold text-gray-800">-- 小時 -- 分</p>
+                            </div>
+                         </div>
+                    </div>
+                    <!-- 打卡紀錄 -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3 border-b pb-2">今日打卡紀錄</h3>
+                        <div id="history-log" class="space-y-3 max-h-96 overflow-y-auto pr-2">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 打卡頁面 -->
+                <div id="checkin-page" class="hidden">
+                     <!-- Map Display -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3 border-b pb-2 flex items-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <span>目前位置</span>
+                            <span id="tracking-status" class="ml-2 hidden items-center">
+                                <span class="blinking-dot"></span>
+                                <span class="ml-1.5 text-sm font-normal text-gray-600">路徑追蹤中</span>
+                            </span>
+                        </h3>
+                        <div id="map" class="w-full rounded-lg bg-gray-200 flex items-center justify-center text-gray-500 overflow-hidden">
+                            正在取得 GPS 定位...
+                        </div>
+                    </div>
+                    <!-- 打卡按鈕區 -->
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <button id="clock-in-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-4 rounded-lg shadow-md transition-all duration-200 flex items-center justify-center space-x-2 disabled:bg-gray-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10.5V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h12.5"/><path d="m16 16-2 2 4 4 4-4-2-2"/><path d="M18 10V2"/></svg>
+                            <span>上班打卡</span>
+                        </button>
+                        <button id="clock-out-btn" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-4 rounded-lg shadow-md transition-all duration-200 flex items-center justify-center space-x-2 disabled:bg-gray-400" disabled>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 13.5V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h12.5"/><path d="m16 22 5-5-5-5"/><path d="M18 10V2"/></svg>
+                            <span>下班打卡</span>
+                        </button>
                     </div>
                 </div>
             </main>
+
+            <!-- 底部導覽列 -->
+            <nav id="bottom-nav" class="w-full border-t bg-gray-50">
+                <div class="flex justify-around">
+                    <button id="nav-dashboard-btn" class="flex-1 p-3 text-center text-gray-500 flex flex-col items-center justify-center space-y-1 transition-colors duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+                        <span class="text-xs font-medium">儀表板</span>
+                    </button>
+                    <button id="nav-checkin-btn" class="flex-1 p-3 text-center text-gray-500 flex flex-col items-center justify-center space-y-1 transition-colors duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <span class="text-xs font-medium">打卡</span>
+                    </button>
+                </div>
+            </nav>
         </div>
     </div>
 
@@ -181,13 +200,19 @@
     const statusCardEl = document.getElementById('status-card');
     const mapContainer = document.getElementById('map');
     const trackingStatusEl = document.getElementById('tracking-status');
+    
+    // --- 新增: 頁面與導覽按鈕 ---
+    const dashboardPage = document.getElementById('dashboard-page');
+    const checkinPage = document.getElementById('checkin-page');
+    const navDashboardBtn = document.getElementById('nav-dashboard-btn');
+    const navCheckinBtn = document.getElementById('nav-checkin-btn');
 
     const eyeIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
     const eyeOffIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" x2="22" y1="2" y2="22"></line></svg>`;
     
     let workDurationInterval = null, unsubscribeFromHistory = null;
     let map = null, marker = null, currentPosition = null, locationWatcherId = null;
-    let pathCoordinates = [], pathPolyline = null; // 新增：用於路徑追蹤
+    let pathCoordinates = [], pathPolyline = null;
 
     // --- Firebase 設定檢查 ---
     function checkFirebaseConfig() {
@@ -208,26 +233,61 @@
         const auth = getAuth(app);
         
         initializeLoginScreen();
+        initializeNavigation(); // 初始化導覽列
         
         onAuthStateChanged(auth, user => {
             if (user) {
                 loginView.classList.add('hidden');
                 mainView.classList.remove('hidden');
+                mainView.classList.add('flex');
                 userEmailDisplay.textContent = `歡迎, ${user.email}`;
                 listenToTodayRecords(user.uid);
                 startLocationWatcher();
+                showPage('dashboard'); // 登入後預設顯示儀表板
             } else {
                 loginView.classList.remove('hidden');
+                loginView.classList.remove('flex-1', 'overflow-y-auto');
                 mainView.classList.add('hidden');
+                mainView.classList.remove('flex');
                 if (unsubscribeFromHistory) unsubscribeFromHistory();
                 if (workDurationInterval) clearInterval(workDurationInterval);
                 stopLocationWatcher();
                 clearMainView();
             }
         });
+        
+        // --- 新增: 頁面切換邏輯 ---
+        function initializeNavigation() {
+            navDashboardBtn.addEventListener('click', () => showPage('dashboard'));
+            navCheckinBtn.addEventListener('click', () => showPage('checkin'));
+        }
+
+        function setActiveTab(activeBtn) {
+            const baseClasses = 'flex-1 p-3 text-center text-gray-500 flex flex-col items-center justify-center space-y-1 transition-colors duration-200';
+            navDashboardBtn.className = baseClasses;
+            navCheckinBtn.className = baseClasses;
+
+            activeBtn.classList.remove('text-gray-500');
+            activeBtn.classList.add('text-red-600', 'bg-red-50');
+        }
+
+        function showPage(pageName) {
+            if (pageName === 'dashboard') {
+                dashboardPage.classList.remove('hidden');
+                checkinPage.classList.add('hidden');
+                setActiveTab(navDashboardBtn);
+            } else if (pageName === 'checkin') {
+                dashboardPage.classList.add('hidden');
+                checkinPage.classList.remove('hidden');
+                setActiveTab(navCheckinBtn);
+                // 當地圖容器從 hidden 變為可見時，需要重新計算地圖尺寸
+                if (map) {
+                    setTimeout(() => map.invalidateSize(), 10);
+                }
+            }
+        }
 
         // --- 登入/登出相關 ---
-        // (此區塊與前一版相同，故省略以節省篇幅)
         function initializeLoginScreen() {
             const savedEmail = localStorage.getItem('rememberedEmail');
             if (savedEmail) {
@@ -241,15 +301,12 @@
             const email = emailInput.value;
             const password = passwordInput.value;
             loginMessage.textContent = '';
-
             if (rememberMeCheckbox.checked) {
                 localStorage.setItem('rememberedEmail', email);
             } else {
                 localStorage.removeItem('rememberedEmail');
             }
-            
             toggleButtonLoading(loginBtn, true, '登入中...');
-
             try {
                 if (email === '11' && password === '11') {
                     await signInWithEmailAndPassword(auth, 'test@company.com', 'password123');
@@ -293,9 +350,9 @@
                 });
         });
 
-
         // --- 地圖與定位邏輯 ---
         function startLocationWatcher() {
+            if (locationWatcherId) return; // 防止重複啟動
             if (!navigator.geolocation) {
                 mapContainer.innerHTML = '您的瀏覽器不支援 GPS 定位。';
                 return;
@@ -303,9 +360,9 @@
             
             locationWatcherId = navigator.geolocation.watchPosition(
                 (pos) => {
-                    currentPosition = pos; // 保存最新位置
+                    currentPosition = pos;
                     const { latitude, longitude } = pos.coords;
-                    const latLng = L.latLng(latitude, longitude); // 使用 Leaflet 的 latLng 物件
+                    const latLng = L.latLng(latitude, longitude);
 
                     if (!map) { 
                         initMap(latLng);
@@ -317,10 +374,7 @@
                     trackingStatusEl.classList.remove('hidden');
                     trackingStatusEl.classList.add('flex');
 
-                    // --- 路徑追蹤邏輯 ---
                     const lastPoint = pathCoordinates.length > 0 ? pathCoordinates[pathCoordinates.length - 1] : null;
-
-                    // 移動超過 5 公尺才記錄一個點
                     if (!lastPoint || latLng.distanceTo(lastPoint) > 5) {
                         pathCoordinates.push(latLng);
                         if (!pathPolyline) {
@@ -348,11 +402,9 @@
             if (locationWatcherId) {
                 navigator.geolocation.clearWatch(locationWatcherId);
             }
-            // 清除路徑資料
             pathCoordinates = [];
-            if (pathPolyline) {
+            if (pathPolyline && map) {
                 pathPolyline.remove();
-                pathPolyline = null;
             }
             if (map) {
                 map.remove();
@@ -361,6 +413,7 @@
             locationWatcherId = null;
             currentPosition = null;
             marker = null;
+            pathPolyline = null;
             mapContainer.innerHTML = '正在取得 GPS 定位...';
             trackingStatusEl.classList.add('hidden');
         }
@@ -413,20 +466,16 @@
         clockOutBtn.addEventListener('click', () => handleClockAction('out'));
         
         // --- 資料監聽與畫面渲染 ---
-        // (此區塊與前一版相同，故省略以節省篇幅)
         function listenToTodayRecords(userId) {
             if (unsubscribeFromHistory) unsubscribeFromHistory();
-
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-
             const q = query(
                 collection(db, "clock_records"),
                 where("userId", "==", userId),
                 where("timestamp", ">=", today),
                 orderBy("timestamp", "desc")
             );
-
             unsubscribeFromHistory = onSnapshot(q, (snapshot) => {
                 const history = snapshot.docs.map(doc => {
                     const data = doc.data();
@@ -464,7 +513,6 @@
                 workDurationEl.textContent = `${duration.hours} 小時 ${duration.minutes} 分`;
             };
             calculateAndRenderDuration();
-            
             if(isClockedIn) {
                  workDurationInterval = setInterval(calculateAndRenderDuration, 60000);
             }
@@ -512,7 +560,6 @@
         }
 
         // --- 工具函式 ---
-        // (此區塊與前一版相同，故省略以節省篇幅)
         function showMessage(message, type = 'info') {
             const typeClasses = {
                 success: 'bg-green-100 text-green-800', error: 'bg-red-100 text-red-800',
@@ -542,7 +589,6 @@
             let totalMilliseconds = 0;
             const chronologicalHistory = [...history].reverse();
             let lastClockInTime = null;
-
             chronologicalHistory.forEach(record => {
                 if (record.type === 'in') {
                     lastClockInTime = record.timestamp;
@@ -551,15 +597,12 @@
                     lastClockInTime = null;
                 }
             });
-
             if (isClockedIn && lastClockInTime) {
                 totalMilliseconds += new Date() - lastClockInTime;
             }
-
             const totalMinutes = Math.floor(totalMilliseconds / 60000);
             const hours = Math.floor(totalMinutes / 60);
             const minutes = totalMinutes % 60;
-            
             return { hours, minutes };
         }
     }
