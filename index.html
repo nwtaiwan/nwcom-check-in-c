@@ -29,9 +29,22 @@
             to { transform: rotate(360deg); }
         }
         #camera-modal, #add-account-modal, #map-modal, #profile-camera-modal, #edit-account-modal, #delete-confirm-modal, #profile-modal { z-index: 1000; }
+        .aspect-16-9 {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+        }
+        .aspect-16-9 > video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
     </style>
 </head>
-<body class="bg-red-600 flex justify-center min-h-screen pt-[10px] px-[10px] pb-[60px]">
+<body class="bg-red-600 flex justify-center min-h-screen pt-[10px] px-[10px] pb-[50px]">
 
     <div class="w-full max-w-md mx-auto bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col">
         
@@ -72,8 +85,8 @@
         </div>
 
         <!-- 主操作畫面 -->
-        <div id="main-view" class="hidden flex-1 flex flex-col">
-            <header class="bg-red-600 text-white p-3 flex justify-between items-center shadow-md">
+        <div id="main-view" class="hidden flex-1 flex flex-col relative">
+            <header class="absolute top-0 left-0 w-full z-20 bg-red-600 text-white p-3 flex justify-between items-center shadow-md">
                 <div class="flex items-center space-x-4">
                     <img src="https://static.wixstatic.com/media/6148f9_56377cef73c1498f95a2c3057b89f2ed~mv2.png" alt="西北保全 Logo" style="width: 80px; height: 40px; object-fit: contain;">
                     <div>
@@ -87,7 +100,7 @@
             </header>
 
             <!-- 可滾動的內容區域 -->
-            <main class="flex-1 overflow-y-auto p-6 md:p-8 bg-gray-100">
+            <main class="w-full h-full overflow-y-auto p-6 md:p-8 bg-gray-100 pt-[90px] pb-[80px]">
                 <div id="message-box" class="hidden p-4 mb-4 text-sm rounded-lg" role="alert">
                     <span class="font-medium" id="message-content"></span>
                 </div>
@@ -185,7 +198,7 @@
             </main>
 
             <!-- 底部導覽列 -->
-            <nav id="bottom-nav" class="w-full border-t bg-gray-50">
+            <nav id="bottom-nav" class="absolute bottom-0 left-0 w-full z-20 border-t bg-gray-50">
                 <div class="flex justify-around">
                     <button id="nav-settings-btn" class="hidden flex-1 p-3 text-center text-gray-500 flex flex-col items-center justify-center space-y-1 transition-colors duration-200">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -212,8 +225,8 @@
             </header>
             <main class="p-4 flex-1 overflow-y-auto">
                 <div class="space-y-4">
-                    <div class="relative w-full bg-gray-200 rounded-lg overflow-hidden">
-                        <video id="camera-video" class="w-full h-auto" playsinline autoplay></video>
+                    <div class="aspect-16-9 bg-gray-200 rounded-lg overflow-hidden">
+                        <video id="camera-video" playsinline autoplay></video>
                         <canvas id="photo-canvas" class="hidden"></canvas>
                     </div>
                      <div>
@@ -481,10 +494,11 @@
                 <svg class="mx-auto mb-4 text-gray-400 w-12 h-12" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 11V6m0 8h.01M19 10a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
                 </svg>
-                <h3 class="mb-5 text-lg font-normal text-gray-600">確定要刪除此帳號嗎？</h3>
+                <h3 class="mb-5 text-lg font-normal text-gray-600">確定要停用此帳號嗎？</h3>
+                <p class="mb-2 text-sm text-gray-500">此帳號將無法再登入。</p>
                 <p id="delete-user-info" class="mb-5 text-sm font-normal text-gray-500"></p>
                 <button id="confirm-delete-btn" type="button" class="text-white bg-red-600 hover:bg-red-800 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center mr-2">
-                    是的, 刪除
+                    是的, 停用
                 </button>
                 <button id="cancel-delete-btn" type="button" class="text-gray-500 bg-white hover:bg-gray-100 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900">
                     取消
@@ -544,7 +558,7 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { initializeApp, getApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, addDoc, query, where, onSnapshot, serverTimestamp, orderBy, doc, updateDoc, arrayUnion, setDoc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getStorage, ref, uploadString, getDownloadURL, uploadBytes, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -688,6 +702,7 @@
             let editCurrentUserPhotoFile = null;
             let viewerPhotos = [];
             let currentPhotoIndex = 0;
+            let tempPhotos = [];
 
             // --- Firebase 設定檢查 ---
             function checkFirebaseConfig() {
@@ -717,7 +732,13 @@
                         const userDocSnap = await getDoc(userDocRef);
 
                         if (userDocSnap.exists()) {
-                            currentUserData = { id: user.uid, ...userDocSnap.data() };
+                            const userData = userDocSnap.data();
+                            if (userData.status === 'deleted') {
+                                loginMessage.textContent = '此帳號已被停用。';
+                                signOut(auth);
+                                return;
+                            }
+                            currentUserData = { id: user.uid, ...userData };
                             currentUserRole = currentUserData.role;
                             userNameDisplay.textContent = `歡迎, ${currentUserData.username || currentUserData.name}`;
                             headerProfileImg.src = currentUserData.photoURL || 'https://placehold.co/96x96/e2e8f0/4a5568?text=頭像';
@@ -786,7 +807,10 @@
                     closeProfileModalBtn.addEventListener('click', closeProfileModal);
                     cancelProfileEditBtn.addEventListener('click', closeProfileModal);
                     profileForm.addEventListener('submit', handleProfileEditSubmit);
-                    modalLogoutBtn.addEventListener('click', () => signOut(auth));
+                    modalLogoutBtn.addEventListener('click', () => {
+                        closeProfileModal();
+                        signOut(auth);
+                    });
                     profileModalUploadBtn.addEventListener('click', () => profileModalPhotoInput.click());
                     profileModalPhotoInput.addEventListener('change', handleProfileModalPhotoSelect);
                     
@@ -806,7 +830,7 @@
 
                     // 打卡相機
                     takePhotoBtn.addEventListener('click', takePhotoWithWatermark);
-                    closeCameraBtn.addEventListener('click', closeCameraModal);
+                    closeCameraBtn.addEventListener('click', uploadPhotosAndFinish);
                     
                     // 地圖
                     closeMapModalBtn.addEventListener('click', closeMapModal);
@@ -1088,7 +1112,8 @@
                 async function showCameraModal(title, recordId) {
                     cameraModal.dataset.recordId = recordId;
                     cameraModalTitle.textContent = title;
-                    photoPreviewContainer.innerHTML = '';
+                    tempPhotos = []; // Reset photos array
+                    renderPhotoPreviews(); // Clear previews
                     photoDescriptionInput.value = '';
                     cameraModal.classList.remove('hidden');
                     try {
@@ -1102,75 +1127,111 @@
                     }
                 }
 
-                async function takePhotoWithWatermark() {
+                function renderPhotoPreviews() {
+                    photoPreviewContainer.innerHTML = '';
+                    tempPhotos.forEach((dataUrl, index) => {
+                        const imgContainer = document.createElement('div');
+                        imgContainer.className = 'relative';
+                        
+                        const img = document.createElement('img');
+                        img.src = dataUrl;
+                        img.className = 'w-full h-24 object-cover rounded';
+                        
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'absolute top-1 right-1 bg-black bg-opacity-50 text-white rounded-full p-0.5 leading-none';
+                        deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+                        deleteBtn.dataset.index = index;
+                        deleteBtn.onclick = () => {
+                            tempPhotos.splice(index, 1);
+                            renderPhotoPreviews();
+                        };
+                        
+                        imgContainer.appendChild(img);
+                        imgContainer.appendChild(deleteBtn);
+                        photoPreviewContainer.appendChild(imgContainer);
+                    });
+                }
+
+                function takePhotoWithWatermark() {
                     const video = videoElement;
                     if (!video || !video.videoWidth) {
                         showMessage('相機尚未就緒。', 'error');
                         return;
                     }
+                   
+                    const canvas = canvasElement;
+                    const context = canvas.getContext('2d');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                    const user = auth.currentUser;
+                    const now = new Date();
+                    const dateTime = now.toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    const userEmail = user ? user.email : 'N/A';
+                    const gpsCoords = currentPosition ? `${currentPosition.coords.latitude.toFixed(5)}, ${currentPosition.coords.longitude.toFixed(5)}` : 'No GPS';
+                    const description = photoDescriptionInput.value.trim();
+
+                    const textLines = [dateTime, userEmail, `GPS: ${gpsCoords}`];
+                    if (description) textLines.push(description);
+
+                    context.font = '24px "Noto Sans TC"';
+                    context.textBaseline = 'bottom';
+                    
+                    const padding = 10;
+                    const lineHeight = 30;
+                    const boxHeight = (lineHeight * textLines.length) + (padding * 2);
+                    
+                    context.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                    const textWidth = Math.max(...textLines.map(line => context.measureText(line).width));
+                    const boxWidth = textWidth + (padding * 2);
+                    context.fillRect(padding, canvas.height - boxHeight - padding, boxWidth, boxHeight);
+                    
+                    context.fillStyle = 'white';
+                    textLines.forEach((line, index) => {
+                        context.fillText(line, padding * 2, canvas.height - padding - (lineHeight * (textLines.length - 1 - index) ));
+                    });
+                    
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    tempPhotos.push(dataUrl);
+                    renderPhotoPreviews();
+                    photoDescriptionInput.value = ''; // Clear description after each photo
+                }
+
+                async function uploadPhotosAndFinish() {
                     const recordId = cameraModal.dataset.recordId;
-                    if (!recordId) return;
+                    if (!recordId) {
+                        closeCameraModal();
+                        return;
+                    }
 
-                    toggleButtonLoading(takePhotoBtn, true, '上傳中...');
+                    if (tempPhotos.length > 0) {
+                        toggleButtonLoading(closeCameraBtn, true, '上傳照片中...');
 
-                    try {
-                        const canvas = canvasElement;
-                        const context = canvas.getContext('2d');
-                        canvas.width = video.videoWidth;
-                        canvas.height = video.videoHeight;
-                        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        try {
+                            const user = auth.currentUser;
+                            const uploadPromises = tempPhotos.map(dataUrl => {
+                                const photoName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.jpg`;
+                                const storageRef = ref(storage, `photos/${user.uid}/${recordId}/${photoName}`);
+                                return uploadString(storageRef, dataUrl, 'data_url').then(uploadResult => getDownloadURL(uploadResult.ref));
+                            });
 
-                        const user = auth.currentUser;
-                        const now = new Date();
-                        const dateTime = now.toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                        const userEmail = user ? user.email : 'N/A';
-                        const gpsCoords = currentPosition ? `${currentPosition.coords.latitude.toFixed(5)}, ${currentPosition.coords.longitude.toFixed(5)}` : 'No GPS';
-                        const description = photoDescriptionInput.value.trim();
+                            const downloadURLs = await Promise.all(uploadPromises);
 
-                        const textLines = [dateTime, userEmail, `GPS: ${gpsCoords}`];
-                        if (description) textLines.push(description);
-
-                        context.font = '24px "Noto Sans TC"';
-                        context.textBaseline = 'bottom';
-                        
-                        const padding = 10;
-                        const lineHeight = 30;
-                        const boxHeight = (lineHeight * textLines.length) + (padding * 2);
-                        
-                        context.fillStyle = 'rgba(0, 0, 0, 0.6)';
-                        const textWidth = Math.max(...textLines.map(line => context.measureText(line).width));
-                        const boxWidth = textWidth + (padding * 2);
-                        context.fillRect(padding, canvas.height - boxHeight - padding, boxWidth, boxHeight);
-                        
-                        context.fillStyle = 'white';
-                        textLines.forEach((line, index) => {
-                            context.fillText(line, padding * 2, canvas.height - padding - (lineHeight * (textLines.length - 1 - index) ));
-                        });
-                        
-                        const dataUrl = canvas.toDataURL('image/jpeg');
-                        
-                        const photoName = `${Date.now()}.jpg`;
-                        const storageRef = ref(storage, `photos/${user.uid}/${recordId}/${photoName}`);
-                        const uploadResult = await uploadString(storageRef, dataUrl, 'data_url');
-                        const downloadURL = await getDownloadURL(uploadResult.ref);
-                        
-                        const recordRef = doc(db, 'clock_records', recordId);
-                        await updateDoc(recordRef, { photoURLs: arrayUnion(downloadURL) });
-
-                        const imgContainer = document.createElement('div');
-                        imgContainer.className = 'relative'
-                        const img = document.createElement('img');
-                        img.src = dataUrl;
-                        img.className = 'w-full h-auto object-cover rounded';
-                        imgContainer.appendChild(img);
-                        photoPreviewContainer.appendChild(imgContainer);
-                        photoDescriptionInput.value = '';
-                        showMessage('照片已上傳！', 'success');
-                    } catch (error) {
-                        console.error("Photo upload error:", error);
-                        showMessage('照片上傳失敗。', 'error');
-                    } finally {
-                        toggleButtonLoading(takePhotoBtn, false);
+                            const recordRef = doc(db, 'clock_records', recordId);
+                            await updateDoc(recordRef, {
+                                photoURLs: arrayUnion(...downloadURLs)
+                            });
+                            showMessage('所有照片已上傳！', 'success');
+                        } catch (error) {
+                            console.error("Final photo upload error:", error);
+                            showMessage('部分或所有照片上傳失敗。', 'error');
+                        } finally {
+                            toggleButtonLoading(closeCameraBtn, false);
+                            closeCameraModal();
+                        }
+                    } else {
+                        closeCameraModal();
                     }
                 }
 
@@ -1389,7 +1450,7 @@
                 }
                 
                 function openDeleteConfirmModal(userId, userName) {
-                    deleteUserInfo.textContent = `您將要刪除 ${userName} (${userId}) 的帳號資料。`;
+                    deleteUserInfo.textContent = `您將要停用 ${userName} (${userId})。`;
                     confirmDeleteBtn.dataset.userId = userId;
                     deleteConfirmModal.classList.remove('hidden');
                 }
@@ -1398,7 +1459,6 @@
                     deleteConfirmModal.classList.add('hidden');
                 }
 
-
                 async function handleAddAccountSubmit(e) {
                     e.preventDefault();
                     toggleButtonLoading(submitAddAccountBtn, true, '儲存中...');
@@ -1406,20 +1466,25 @@
                     const email = document.getElementById('new-account-email').value;
                     const password = document.getElementById('new-account-password').value;
 
-                    let userData = {
-                        username: document.getElementById('new-account-username').value,
-                        email: email,
-                        name: document.getElementById('new-account-name').value,
-                        role: document.getElementById('new-account-role').value,
-                        title: document.getElementById('new-account-title').value,
-                        phone: document.getElementById('new-account-phone').value,
-                        photoURL: '',
-                        createdAt: serverTimestamp()
-                    };
+                    // 使用獨立的 Firebase App 實例來創建用戶，避免影響當前管理員的登入狀態
+                    const tempAppName = `temp-user-creation-${Date.now()}`;
+                    const tempApp = initializeApp(firebaseConfig, tempAppName);
+                    const tempAuth = getAuth(tempApp);
 
                     try {
-                        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                        const userCredential = await createUserWithEmailAndPassword(tempAuth, email, password);
                         const user = userCredential.user;
+
+                        let userData = {
+                            username: document.getElementById('new-account-username').value,
+                            email: email,
+                            name: document.getElementById('new-account-name').value,
+                            role: document.getElementById('new-account-role').value,
+                            title: document.getElementById('new-account-title').value,
+                            phone: document.getElementById('new-account-phone').value,
+                            photoURL: '',
+                            createdAt: serverTimestamp()
+                        };
 
                         if (profilePhotoFile) {
                             const photoRef = ref(storage, `profile_pictures/${user.uid}`);
@@ -1438,6 +1503,7 @@
                         else if (error.code === 'permission-denied') message = '權限不足。';
                         showMessage(message, 'error');
                     } finally {
+                        await deleteApp(tempApp); // 清理臨時實例
                         toggleButtonLoading(submitAddAccountBtn, false);
                     }
                 }
@@ -1480,24 +1546,20 @@
                 async function handleDeleteAccount() {
                     const userId = confirmDeleteBtn.dataset.userId;
                     if (!userId) return;
-                    
+
+                    toggleButtonLoading(confirmDeleteBtn, true, '處理中...');
                     try {
-                        await deleteDoc(doc(db, "users", userId));
+                        const userDocRef = doc(db, "users", userId);
+                        await updateDoc(userDocRef, { status: "deleted" });
                         
-                        const photoRef = ref(storage, `profile_pictures/${userId}`);
-                        deleteObject(photoRef).catch(error => {
-                            if (error.code !== 'storage/object-not-found') {
-                                console.error("刪除大頭照失敗:", error);
-                            }
-                        });
-                        
-                        showMessage('帳號資料已刪除', 'success');
+                        showMessage('帳號已停用', 'success');
                     } catch(error) {
-                        console.error("刪除帳號失敗:", error);
-                        let message = '刪除帳號失敗。';
+                        console.error("停用帳號失敗:", error);
+                        let message = '停用帳號失敗。';
                         if (error.code === 'permission-denied') message = '權限不足。';
                         showMessage(message, 'error');
                     } finally {
+                        toggleButtonLoading(confirmDeleteBtn, false);
                         closeDeleteConfirmModal();
                     }
                 }
@@ -1507,7 +1569,9 @@
                     if (unsubscribeFromAccounts) unsubscribeFromAccounts();
                     const q = query(collection(db, "users"), orderBy("createdAt", "desc"));
                     unsubscribeFromAccounts = onSnapshot(q, (snapshot) => {
-                        const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        const users = snapshot.docs
+                            .map(doc => ({ id: doc.id, ...doc.data() }))
+                            .filter(user => user.status !== 'deleted');
                         renderAccountList(users);
                     }, (error) => {
                         console.error("Error listening to accounts:", error);
@@ -1541,7 +1605,7 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
                                 </button>
                                 <button data-id="${user.id}" data-name="${user.name}" class="delete-account-btn p-2 text-gray-500 hover:text-red-600 rounded-full hover:bg-gray-100">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="18" y1="8" x2="23" y2="13"></line><line x1="23" y1="8" x2="18" y2="13"></line></svg>
                                 </button>
                             </div>
                         `;
@@ -1681,14 +1745,10 @@
                         button.disabled = true;
                         button.innerHTML = `<div class="spinner"></div><span>${text || '處理中...'}</span>`;
                     } else {
-                        button.disabled = false;
                         if (button.dataset.originalHtml) {
                             button.innerHTML = button.dataset.originalHtml;
                         }
-                        if (text) {
-                            const span = button.querySelector('span');
-                            if (span) span.textContent = text;
-                        }
+                        button.disabled = false;
                     }
                 }
                 
