@@ -45,15 +45,36 @@
         
         /* 響應式設計 - 手機優先 */
         @media (max-width: 450px) {
-            #root-container {
-                width: calc(100% - 20px) !important;
+            /* 只在登入頁面時應用置中樣式 */
+            body:has(#login-view:not(.hidden)) #root-container {
+                width: 360px !important;
                 max-width: none !important;
-                margin: 40px 10px !important;
+                margin: auto !important;
                 border-radius: 1rem !important;
+                height: 480px !important;
+                max-height: none !important;
+                position: absolute !important;
+                top: 50% !important;
+                left: 50% !important;
+                transform: translate(-50%, -50%) !important;
+            }
+            
+            /* 登入後的樣式 - 恢復原有佈局 */
+            body:has(#main-view:not(.hidden)) #root-container {
+                width: 400px !important;
+                height: 750px !important;
+                position: relative !important;
+                top: auto !important;
+                left: auto !important;
+                transform: none !important;
+                margin: 10px auto 50px !important;
             }
             
             body {
                 overflow: hidden;
+                position: relative;
+                height: 100vh;
+                margin: 0;
             }
             
             #bottom-nav {
@@ -74,12 +95,49 @@
         #main-view {
             position: relative;
             height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* 主頁佈局調整 */
+        #root-container {
+            margin: 10px auto 50px !important;
+        }
+        
+        /* 確保登入後頁面在登入狀態下完全隱藏 */
+        #main-view.hidden {
+            display: none !important;
+        }
+        
+        #main-view header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            z-index: 20;
+        }
+        
+        #bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            z-index: 20;
+        }
+        
+        #main-view .flex-1.flex-col {
+            margin-top: 70px;
+            margin-bottom: 70px;
+            height: calc(100% - 140px);
+            overflow: hidden;
         }
     </style>
 </head>
 <body class="bg-red-600 flex justify-center items-center min-h-screen">
 
-    <div id="root-container" class="w-[calc(100%-20px)] max-w-[400px] h-[calc(100vh-80px)] max-h-[750px] bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col transition-all duration-300 ease-in-out mx-auto my-[40px]">
+    <div id="root-container" class="w-[calc(100%-20px)] max-w-[400px] h-[calc(100vh-80px)] max-h-[750px] bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col transition-all duration-300 ease-in-out mx-auto">
         
         <!-- 登入畫面 -->
         <div id="login-view" class="flex-1 overflow-y-auto flex flex-col min-h-[480px]">
@@ -112,7 +170,7 @@
                         <span>登入系統</span>
                     </button>
                     <p id="login-message" class="text-red-500 text-sm text-center min-h-[10px]"></p>
-                    <p class="text-center text-gray-600 text-xs mt-2">V1.3.1</p>
+                    <p class="text-center text-gray-600 text-xs mt-2">V1.4.6</p>
                 </div>
             </main>
         </div>
@@ -133,7 +191,7 @@
             </header>
 
             <!-- 中間內容區 (包含子導覽與可滾動內容) -->
-            <div class="flex-1 flex flex-col mt-[70px] mb-[70px] overflow-hidden">
+            <div class="flex-1 flex flex-col overflow-hidden">
                  <!-- Date Time Display / Sub Nav Container -->
                 <div class="h-[50px] border-b border-gray-200 bg-gray-100 flex-shrink-0">
                     <div id="datetime-display" class="h-full px-6 bg-white flex items-center justify-center text-xl font-semibold text-gray-800">
@@ -850,6 +908,8 @@
                         loginView.classList.add('hidden');
                         mainView.classList.remove('hidden');
                         mainView.classList.add('flex');
+                        // 移除內聯樣式
+                        mainView.style.display = '';
                         
                         const todayString = getTaipeiDateString();
                         historyDatePicker.value = todayString;
@@ -874,6 +934,8 @@
                         loginView.classList.remove('hidden');
                         mainView.classList.add('hidden');
                         mainView.classList.remove('flex');
+                        // 確保main-view完全不可見
+                        mainView.style.display = 'none';
                         
                         if (unsubscribeFromHistory) unsubscribeFromHistory();
                         if (unsubscribeFromAccounts) unsubscribeFromAccounts();
@@ -1959,4 +2021,5 @@
         });
     </script>
 </body>
+
 </html>
